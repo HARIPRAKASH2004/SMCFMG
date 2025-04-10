@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../user/ForgotPasswordPage.dart';
 import '../user/RegisterPage.dart';
+import '../user/rootpage.dart';
 
 
 class LoginPage extends StatefulWidget {
@@ -222,7 +223,13 @@ class _LoginPageState extends State<LoginPage> {
           ),
           elevation: 0,
         ),
-        onPressed: () {},
+        onPressed: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const UserPage()),
+          );
+
+        },
         child: const Text(
           'Sign In',
           style: TextStyle(

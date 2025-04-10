@@ -46,8 +46,8 @@ class _AdminPageState extends State<AdminPage> {
           physics: const NeverScrollableScrollPhysics(), // disable swipe
           children: const [
             HomePage(),
-            OrdersPage(),
-            NotificationsPage(),
+            // OrdersPage(),
+            NotificationPage(),
             ProfilePage(),
             HistoryPage(),
           ],

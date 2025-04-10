@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '/modules/user/HistoryPage.dart';
+import 'package:flutter/services.dart';
 import '/modules/user/ProfilePage.dart';
 import './HomePage.dart';
 import './OrdersPage.dart';
 import 'NotificationPage.dart';
-
 
 class UserPage extends StatefulWidget {
   const UserPage({Key? key}) : super(key: key);
@@ -13,17 +12,17 @@ class UserPage extends StatefulWidget {
   State<UserPage> createState() => _UserPageState();
 }
 
-
 class _UserPageState extends State<UserPage> {
   int _currentIndex = 0;
   late PageController _pageController;
+
+  bool isOnline = false;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _currentIndex);
   }
-
 
   @override
   void dispose() {
@@ -32,58 +31,106 @@ class _UserPageState extends State<UserPage> {
   }
 
   void onTabTapped(int index) {
+    HapticFeedback.lightImpact(); // ✅ Better haptic
     setState(() => _currentIndex = index);
     _pageController.jumpToPage(index);
+  }
+
+  Widget _buildCustomAppBar() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black26),
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.white,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.circle,
+                    size: 10,
+                    color: isOnline ? Colors.green : Colors.grey,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isOnline ? "Online" : "Offline",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: const Icon(Icons.help_outline, size: 22),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: PageView(
-          controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(), // disable swipe
-          children: const [
-            HomePage(),
-            OrdersPage(),
-            NotificationsPage(),
-            ProfilePage(),
-            HistoryPage(),
-          ],
-        ),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(55),
+        child: _buildCustomAppBar(),
+      ),
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          HomePage(),
+          OrderPage(),
+          NotificationPage(),
+          ProfilePage(),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: onTabTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.deepPurple,
-        unselectedItemColor: Colors.black87,
         backgroundColor: Colors.white,
-        items: const [
-
+        selectedItemColor: const Color.fromRGBO(160, 50, 50, 1),
+        unselectedItemColor: Colors.black87,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Icon(Icons.home, size: _currentIndex == 0 ? 28 : 24),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.local_shipping),
+            icon: Icon(Icons.local_shipping, size: _currentIndex == 1 ? 28 : 24),
             label: 'Orders',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+            icon: Icon(Icons.notifications, size: _currentIndex == 2 ? 28 : 24),
             label: 'Notification',
           ),
           BottomNavigationBarItem(
             icon: CircleAvatar(
               radius: 12,
-              // backgroundImage: AssetImage('assets/images/profile.jpeg'),
+              backgroundImage: AssetImage('assets/images/profile.png'),
+              backgroundColor: Colors.transparent,
             ),
             label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Earnings',
           ),
         ],
       ),
