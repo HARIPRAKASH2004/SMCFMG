@@ -11,7 +11,10 @@ class NoInternetPage extends StatefulWidget {
 
 class _NoInternetPageState extends State<NoInternetPage> {
   final Connectivity _connectivity = Connectivity();
+
+  // ✅ Updated for connectivity_plus 6.0.3
   late StreamSubscription<List<ConnectivityResult>> _subscription;
+
   bool _isConnected = true;
 
   @override
@@ -19,13 +22,14 @@ class _NoInternetPageState extends State<NoInternetPage> {
     super.initState();
     _checkInitialConnection();
     _subscription = _connectivity.onConnectivityChanged.listen((results) {
+      // ✅ Check if any result is mobile or wifi
       final connected = results.contains(ConnectivityResult.mobile) ||
           results.contains(ConnectivityResult.wifi);
+
       setState(() {
         _isConnected = connected;
       });
 
-      // If connected, pop this page
       if (_isConnected) {
         Navigator.of(context).maybePop();
       }
@@ -34,9 +38,11 @@ class _NoInternetPageState extends State<NoInternetPage> {
 
   Future<void> _checkInitialConnection() async {
     final result = await _connectivity.checkConnectivity();
+    final connected = result == ConnectivityResult.mobile ||
+        result == ConnectivityResult.wifi;
+
     setState(() {
-      _isConnected = result.contains(ConnectivityResult.mobile) ||
-          result.contains(ConnectivityResult.wifi);
+      _isConnected = connected;
     });
 
     if (_isConnected) {
@@ -61,7 +67,7 @@ class _NoInternetPageState extends State<NoInternetPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.wifi_off, color: Colors.redAccent, size: 80),
+                const Icon(Icons.wifi_off, color: Colors.redAccent, size: 80),
                 const SizedBox(height: 20),
                 const Text(
                   'No Internet Connection',

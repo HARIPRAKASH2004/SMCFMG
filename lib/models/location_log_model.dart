@@ -1,22 +1,22 @@
 class LocationModel {
-  final double latitude;
-  final double longitude;
-  final String address;
-  final DateTime lastUpdated;
+  final double? latitude;  // Nullable
+  final double? longitude; // Nullable
+  final String? address;   // Nullable
+  final DateTime? lastUpdated; // Nullable
 
   LocationModel({
-    required this.latitude,
-    required this.longitude,
-    required this.address,
-    required this.lastUpdated,
+    this.latitude,
+    this.longitude,
+    this.address,
+    this.lastUpdated,
   });
 
   factory LocationModel.fromMap(Map<String, dynamic> map) {
     return LocationModel(
-      latitude: (map['latitude'] ?? 0.0).toDouble(),
-      longitude: (map['longitude'] ?? 0.0).toDouble(),
-      address: (map['address'] ?? '').toString(),
-      lastUpdated: DateTime.tryParse(map['lastUpdated'] ?? '') ?? DateTime.now(),
+      latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
+      longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
+      address: map['address']?.toString(),
+      lastUpdated: map['lastUpdated'] != null ? DateTime.tryParse(map['lastUpdated']) : null,
     );
   }
 
@@ -25,7 +25,7 @@ class LocationModel {
       'latitude': latitude,
       'longitude': longitude,
       'address': address,
-      'lastUpdated': lastUpdated.toIso8601String(),
+      'lastUpdated': lastUpdated?.toIso8601String(),
     };
   }
 

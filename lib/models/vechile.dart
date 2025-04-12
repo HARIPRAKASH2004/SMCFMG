@@ -1,49 +1,55 @@
 class VehicleModel {
-  final String id;
-  final String userId; // driver ID
-  final String vehicleNumber;
-  final String vehicleType; // e.g. 'lorry', 'mini-truck', 'trailer'
-  final String model;
-  final String brand;
-  final int year;
-  final String rcBookUrl; // document URL
-  final String insuranceUrl; // document URL
-  final DateTime insuranceExpiry;
-  final String status; // 'active', 'inactive', 'in_maintenance'
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final String? id;  // Made nullable
+  final String? userId; // driver ID, made nullable
+  final String? vehicleNumber; // Nullable
+  final String? vehicleType; // e.g. 'lorry', 'mini-truck', 'trailer', made nullable
+  final String? model; // Nullable
+  final String? brand; // Nullable
+  final int? year; // Nullable
+  final String? rcBookUrl; // document URL, made nullable
+  final String? insuranceUrl; // document URL, made nullable
+  final DateTime? insuranceExpiry; // Nullable
+  final String? status; // 'active', 'inactive', 'in_maintenance', made nullable
+  final DateTime? createdAt; // Nullable
+  final DateTime? updatedAt; // Nullable
 
   VehicleModel({
-    required this.id,
-    required this.userId,
-    required this.vehicleNumber,
-    required this.vehicleType,
-    required this.model,
-    required this.brand,
-    required this.year,
-    required this.rcBookUrl,
-    required this.insuranceUrl,
-    required this.insuranceExpiry,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
+    this.id,
+    this.userId,
+    this.vehicleNumber,
+    this.vehicleType,
+    this.model,
+    this.brand,
+    this.year,
+    this.rcBookUrl,
+    this.insuranceUrl,
+    this.insuranceExpiry,
+    this.status,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory VehicleModel.fromMap(Map<String, dynamic> map) {
     return VehicleModel(
-      id: (map['id'] ?? '').toString(),
-      userId: (map['userId'] ?? '').toString(),
-      vehicleNumber: (map['vehicleNumber'] ?? '').toString(),
-      vehicleType: (map['vehicleType'] ?? '').toString(),
-      model: (map['model'] ?? '').toString(),
-      brand: (map['brand'] ?? '').toString(),
-      year: int.tryParse(map['year']?.toString() ?? '') ?? 0,
-      rcBookUrl: (map['rcBookUrl'] ?? '').toString(),
-      insuranceUrl: (map['insuranceUrl'] ?? '').toString(),
-      insuranceExpiry: DateTime.tryParse(map['insuranceExpiry'] ?? '') ?? DateTime.now(),
-      status: (map['status'] ?? 'active').toString(),
-      createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
+      id: map['id']?.toString(),
+      userId: map['userId']?.toString(),
+      vehicleNumber: map['vehicleNumber']?.toString(),
+      vehicleType: map['vehicleType']?.toString(),
+      model: map['model']?.toString(),
+      brand: map['brand']?.toString(),
+      year: map['year'] != null ? int.tryParse(map['year'].toString()) : null,
+      rcBookUrl: map['rcBookUrl']?.toString(),
+      insuranceUrl: map['insuranceUrl']?.toString(),
+      insuranceExpiry: map['insuranceExpiry'] != null
+          ? DateTime.tryParse(map['insuranceExpiry'])
+          : null,
+      status: map['status']?.toString(),
+      createdAt: map['createdAt'] != null
+          ? DateTime.tryParse(map['createdAt'])
+          : null,
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.tryParse(map['updatedAt'])
+          : null,
     );
   }
 
@@ -58,10 +64,10 @@ class VehicleModel {
       'year': year,
       'rcBookUrl': rcBookUrl,
       'insuranceUrl': insuranceUrl,
-      'insuranceExpiry': insuranceExpiry.toIso8601String(),
+      'insuranceExpiry': insuranceExpiry?.toIso8601String(),
       'status': status,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 

@@ -4,12 +4,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:track/modules/common/startpage.dart';
 
 import '../providers/user_provider.dart';
 import '../utils/utils.dart' show handleNotification;
 import '../modules/user/rootpage.dart';
 import '../modules/admin/root.dart';
-import '../modules/common/loginpage.dart';
+import '../modules/common/startpage.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -78,7 +79,7 @@ class _SplashPageState extends State<SplashPage> {
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
+        MaterialPageRoute(builder: (_) => const Welcome1Screen()),
       );
     }
   }

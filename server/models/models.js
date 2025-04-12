@@ -1,16 +1,16 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/dbconfig'); // Import Sequelize instance
+const sequelize = require('../config/dbconfig');
 
-// ✅ Driver Model (User Table)
+// ✅ User Model (Driver / Admin)
 const User = sequelize.define('User', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
-  googleId: { // For Google OAuth users
+  googleId: {
     type: DataTypes.STRING,
-    allowNull: true, // Null for email/password users
+    allowNull: true,
     unique: true,
   },
   name: {
@@ -34,9 +34,9 @@ const User = sequelize.define('User', {
     allowNull: true,
     unique: true,
   },
-  password: { 
+  password: {
     type: DataTypes.STRING,
-    allowNull: true, // Null for Google users
+    allowNull: true,
   },
   state: {
     type: DataTypes.STRING,
@@ -64,7 +64,6 @@ const User = sequelize.define('User', {
   },
   lastUpdated: {
     type: DataTypes.DATE,
-    allowNull: false,
     defaultValue: DataTypes.NOW,
   },
   isOnline: {
@@ -105,7 +104,7 @@ const User = sequelize.define('User', {
   },
 });
 
-// ✅ Location Model (Driver Tracking)
+// ✅ Location Model
 const Location = sequelize.define('Location', {
   id: {
     type: DataTypes.UUID,
@@ -138,20 +137,17 @@ const Location = sequelize.define('Location', {
     allowNull: false,
   },
 }, {
-  timestamps: true, // Automatically adds `createdAt` and `updatedAt`
+  timestamps: true,
 });
 
-
-
-
-
+// ✅ Order Model
 const Order = sequelize.define('Order', {
   orderId: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
-  driverId: { // Only Drivers receive orders
+  driverId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -159,7 +155,7 @@ const Order = sequelize.define('Order', {
       key: 'id',
     },
   },
-  assignedByAdminId: { // Admin who assigned the order
+  assignedByAdminId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -223,17 +219,14 @@ const Order = sequelize.define('Order', {
   },
 });
 
-
-
-// ✅ Vehicle Model (NEW)
-
+// ✅ Vehicle Model
 const Vehicle = sequelize.define('Vehicle', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
-  userId: { // Driver ID
+  userId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -288,6 +281,35 @@ const Vehicle = sequelize.define('Vehicle', {
   },
 });
 
+// ✅ UserLog Model
+const UserLog = sequelize.define('UserLog', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  user_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'User',
+      key: 'id',
+    },
+  },
+  activity: {
+    type: DataTypes.STRING,
+    defaultValue: 'registered',
+  },
+  fcmToken: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  timestamp: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+});
+
 // ✅ Associations
 User.hasOne(Location, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Location.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -301,10 +323,24 @@ Order.belongsTo(User, { foreignKey: 'assignedByAdminId', as: 'admin' });
 User.hasOne(Vehicle, { foreignKey: 'userId', as: 'vehicle', onDelete: 'CASCADE' });
 Vehicle.belongsTo(User, { foreignKey: 'userId', as: 'driver' });
 
+User.hasMany(UserLog, { foreignKey: 'user_id', onDelete: 'CASCADE' });
+UserLog.belongsTo(User, { foreignKey: 'user_id' });
+
+// ❌ Removed invalid fcmToken foreign key associations
+
+// ✅ Log Success
+console.log("🚀 User model synced successfully.");
+console.log("🚀 Location model synced successfully.");
+console.log("🚀 Order model synced successfully.");
+console.log("🚀 Vehicle model synced successfully.");
+console.log("🚀 UserLog model synced successfully.");
+console.log("🚀 Associations between models created successfully.");
+
 // ✅ Export Models
 module.exports = {
   User,
   Location,
   Order,
   Vehicle,
+  UserLog,
 };

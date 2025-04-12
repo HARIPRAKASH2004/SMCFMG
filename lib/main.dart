@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:loading_overlay/loading_overlay.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/user_provider.dart';
 import 'services/splashpage.dart';
 import 'modules/common/NoInternetPage.dart'; // <-- Import your NoInternetPage file
 
-void main() {
+
+final GlobalKey<NavigatorState> navigationKey = GlobalKey<NavigatorState>();
+
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MyApp.pref = await SharedPreferences.getInstance();
   runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
+  static late SharedPreferences pref;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -30,8 +36,9 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _listenToConnectivity() {
-    _connectivity.onConnectivityChanged.listen((result) {
-      final isOffline = result == ConnectivityResult.none;
+    _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      final isOffline = !results.contains(ConnectivityResult.mobile) &&
+          !results.contains(ConnectivityResult.wifi);
 
       if (isOffline) {
         final currentRoute = ModalRoute.of(context)?.settings.name;
@@ -47,12 +54,14 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => UserProvider(),
       child: MaterialApp(
-        title: 'Zomato App',
+        title: 'Track',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,

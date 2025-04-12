@@ -5,7 +5,7 @@ const LocalStrategy = require('passport-local').Strategy;
 const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 require("dotenv").config();
-const { User } = require('../models/model');
+const { User } = require('../models/models');  // Assuming User model is set correctly
 
 const jwtSecret = process.env.JWT_SECRET;
 const adminEmail = process.env.ADMIN_EMAIL;
@@ -18,7 +18,7 @@ passport.use(new LocalStrategy({
     session: false
 }, async (email, password, done) => {
     try {
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ where: { email } });
 
         if (!user) {
             return done(null, false, { message: 'User not found' });
@@ -44,7 +44,7 @@ const jwtOptions = {
 
 passport.use(new JwtStrategy(jwtOptions, async (jwtPayload, done) => {
     try {
-        const user = await User.findById(jwtPayload.id);
+        const user = await User.findByPk(jwtPayload.id); // Use `findByPk` if using Sequelize
 
         if (!user) {
             return done(null, false, { message: 'Invalid token' });
@@ -61,7 +61,7 @@ passport.use(new JwtStrategy(jwtOptions, async (jwtPayload, done) => {
 const authenticateAdmin = async (req, res, next) => {
     try {
         if (req.body.email === adminEmail && req.body.password === adminPassword) {
-            req.user = { role: 'admin', email: adminEmail };
+            req.user = { role: 'admin', email: adminEmail }; // Attaching admin data to request
             return next();
         }
         return res.status(403).json({ message: 'Unauthorized admin access' });
@@ -74,7 +74,7 @@ const authenticateAdmin = async (req, res, next) => {
 // ✅ Generate JWT Token
 const generateToken = (user) => {
     try {
-        return jwt.sign({ id: user._id, role: user.role }, jwtSecret, { expiresIn: '7d' });
+        return jwt.sign({ id: user.id, role: user.role }, jwtSecret, { expiresIn: '7d' });
     } catch (error) {
         console.error("Error generating token:", error);
         throw new Error("Token generation failed");
@@ -96,12 +96,9 @@ const hashPassword = async (password) => {
     }
 };
 
-module.exports = { passport, authenticateAdmin, generateToken, hashPassword };
-
-
-
-// User logs in → Email & password checked → If valid, JWT token is issued.
-// User accesses a protected route → System checks for valid JWT token.
-// If token is valid → System finds user in database, allows access.
-// If token is invalid/expired → Request is denied.
-// Admin authentication (special case) → Hardcoded email/password checked → If correct, admin access granted.
+module.exports = { 
+    passport, 
+    authenticateAdmin, 
+    generateToken, 
+    hashPassword 
+};
