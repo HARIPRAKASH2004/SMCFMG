@@ -9,6 +9,7 @@ const bcrypt = require('bcrypt'); // For password hashing
 const sequelize = require('./config/dbconfig'); // Database connection
 const { User, Order, Location, Vehicle, UserLog } = require('./models/models');
 const { hashPassword } = require('./middleware/auth'); // ✅ Update path if needed
+const argon2 = require('argon2');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -80,19 +81,57 @@ app.post(`/api/user/register`, async (req, res) => {
   }
 });
 
+// ✅ Login Endpoint
+app.post(`/api/user/login`, async (req, res) => {
+  const { email, password, fcmToken } = req.body;
+
+  if (!email || !password) {
+    console.log("❌ Missing required fields (email, password)");
+    return res.status(400).json({ code: 1000, message: "Email and password are required" });
+  }
+
+  try {
+    console.log("🔍 Checking if user exists for email:", email);
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      console.log("❌ No user found with email:", email);
+      return res.status(400).json({ code: 1001, message: "Invalid email or password" });
+    }
+
+    console.log("🔐 Comparing password...");
+    const isMatch = await argon2.verify(user.password, password); // <-- Use argon2 to compare password
+
+    if (!isMatch) {
+      console.log("❌ Incorrect password for user:", email);
+      return res.status(401).json({ code: 1002, message: "Invalid email or password" });
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+
+    if (fcmToken) {
+      await UserLog.upsert({ user_id: user.id, fcmToken });
+      console.log("📱 FCM token updated in UserLog");
+    }
+
+    console.log("✅ Login successful. Sending token...");
+    res.setHeader('x-auth-token', token);
+    return res.status(200).json({ message: "Login successful" });
+
+  } catch (err) {
+    console.error("❌ Login error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 
 // ✅ (Unchanged) Get User Data
 app.get('/api/user/data', passport.authenticate('jwt', { session: false }), async (req, res) => {
   const userId = req.user.id;
-  console.log("🔐 Fetching data for user with ID:", userId);
+  console.log("🔐 Fetching basic user data for ID:", userId);
 
   try {
-    const [user, vehicle, currentOrder, location] = await Promise.all([
-      User.findOne({ where: { id: userId } }),
-      Vehicle.findOne({ where: { userId } }),
-      Order.findOne({ where: { driverId: userId, status: 'assigned' } }),
-      Location.findOne({ where: { userId }, order: [['createdAt', 'DESC']] })
-    ]);
+    const user = await User.findOne({ where: { id: userId } });
 
     if (!user) {
       console.log("❌ User not found:", userId);
@@ -108,96 +147,94 @@ app.get('/api/user/data', passport.authenticate('jwt', { session: false }), asyn
       district: user.district || 'No district',
       type: user.type || 'driver',
       status: user.status || 'active',
+      isOnline: user.isOnline,
       createdAt: user.createdAt || new Date(),
+      aadhaarNumber: user.aadhaarNumber || 'No Aadhaar Number',
       updatedAt: user.updatedAt || new Date()
     };
 
-    const safeVehicle = vehicle && vehicle.id ? {
-      id: vehicle.id || 'No vehicle ID',
-      userId: vehicle.userId || userId,
-      vehicleNumber: vehicle.vehicleNumber || 'No vehicle',
-      vehicleType: vehicle.vehicleType || 'N/A',
-      model: vehicle.model || '',
-      brand: vehicle.brand || '',
-      year: vehicle.year || 0,
-      rcBookUrl: vehicle.rcBookUrl || '',
-      insuranceUrl: vehicle.insuranceUrl || '',
-      insuranceExpiry: vehicle.insuranceExpiry || new Date(),
-      status: vehicle.status || 'inactive',
-      createdAt: vehicle.createdAt || new Date(),
-      updatedAt: vehicle.updatedAt || new Date()
-    } : {
-      id: 'No vehicle ID',
-      userId: userId,
-      vehicleNumber: 'No vehicle',
-      vehicleType: 'N/A',
-      model: '',
-      brand: '',
-      year: 0,
-      rcBookUrl: '',
-      insuranceUrl: '',
-      insuranceExpiry: new Date(),
-      status: 'inactive',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    console.log("🎉 User data fetched successfully:", safeUser);
+    return res.status(200).json({ user: safeUser });
 
-    const safeOrder = currentOrder && currentOrder.orderId ? {
-      orderId: currentOrder.orderId || 'No order ID',
-      driverId: currentOrder.driverId || userId,
-      status: currentOrder.status || 'no_order',
-      fare: currentOrder.fare || 0,
-      pickupTime: currentOrder.pickupTime || new Date(),
-      distanceInKm: currentOrder.distanceInKm || 0,
-      loadWeightInTons: currentOrder.loadWeightInTons || 0,
-      goodsType: currentOrder.goodsType || '',
-      notes: currentOrder.notes || '',
-      createdAt: currentOrder.createdAt || new Date(),
-      updatedAt: currentOrder.updatedAt || new Date()
-    } : {
-      orderId: 'No order ID',
-      driverId: userId,
-      status: 'no_order',
-      fare: 0,
-      pickupTime: new Date(),
-      distanceInKm: 0,
-      loadWeightInTons: 0,
-      goodsType: '',
-      notes: '',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    const safeLocation = location && location.latitude ? {
-      latitude: location.latitude || 0,
-      longitude: location.longitude || 0,
-      address: location.address || 'No address',
-      lastUpdated: location.lastUpdated || new Date(),
-      createdAt: location.createdAt || new Date(),
-      updatedAt: location.updatedAt || new Date()
-    } : {
-      latitude: 0,
-      longitude: 0,
-      address: 'No address',
-      lastUpdated: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    const userData = {
-      user: safeUser,
-      vehicle: safeVehicle,
-      currentOrder: safeOrder,
-      location: safeLocation
-    };
-
-    console.log("🎉 User data fetched successfully:", userData);
-    return res.status(200).json(userData);
   } catch (err) {
     console.error("❌ Error fetching user data:", err);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+app.delete('/api/user/logout', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const userId = req.user.id;
+  console.log("🔐 Logging out user with ID:", userId);
+
+  try {
+    // Delete all UserLog entries for the user
+    const deleted = await UserLog.destroy({ where: { user_id: userId } });
+
+    console.log(`🗑️ Deleted ${deleted} log(s) for user ${userId}`);
+    return res.status(200).json({ message: 'User logged out and logs removed successfully.' });
+
+  } catch (err) {
+    console.error("❌ Error during logout:", err);
+    return res.status(500).json({ message: 'Internal server error during logout' });
+  }
+});
+
+
+
+
+
+app.put('/api/user/online-status', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const userId = req.user.id;
+  const { isOnline } = req.body;
+
+  console.log(`📡 Received online status update for user ID: ${userId} → ${isOnline}`);
+
+  try {
+    // Validate input
+    if (typeof isOnline !== 'boolean') {
+      console.warn("⚠️ Invalid isOnline value received:", isOnline);
+      return res.status(400).json({ message: "Missing or invalid 'isOnline' value." });
+    }
+
+    const user = await User.findOne({ where: { id: userId } });
+
+    if (!user) {
+      console.log("❌ User not found:", userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update online status
+    user.isOnline = isOnline;
+    await user.save();
+
+    console.log(`✅ User ${userId} is now ${user.isOnline ? 'online' : 'offline'}`);
+    return res.status(200).json({
+      message: `User is now ${user.isOnline ? 'online' : 'offline'}`,
+      isOnline: user.isOnline,
+    });
+
+  } catch (err) {
+    console.error("❌ Error updating online status:", err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

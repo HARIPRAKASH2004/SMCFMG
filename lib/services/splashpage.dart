@@ -4,10 +4,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:track/modules/common/startpage.dart';
-
+import '/services/auth_services.dart'; // Adjust the path as needed
 import '../providers/user_provider.dart';
-import '../utils/utils.dart' show handleNotification;
+import '../utils/utils.dart' show handleNotification, showSnackBar;
+import '../utils/api_handler.dart'; // Make sure getUserData is here
 import '../modules/user/rootpage.dart';
 import '../modules/admin/root.dart';
 import '../modules/common/startpage.dart';
@@ -20,8 +20,6 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
-  bool _initialized = false;
-
   @override
   void initState() {
     super.initState();
@@ -30,16 +28,13 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> initializeEverything() async {
     try {
-      // Firebase init
       await Firebase.initializeApp();
 
-      // Notification permissions
       await [
         Permission.notification,
         Permission.locationWhenInUse,
       ].request();
 
-      // Setup push notification handlers
       FirebaseMessaging.onMessage.listen((message) async {
         await handleNotification(message);
       });
@@ -56,10 +51,25 @@ class _SplashPageState extends State<SplashPage> {
         }
       });
 
-      // Wait briefly then navigate
-      Future.delayed(const Duration(seconds: 2), () => navigate());
+      // ✅ Wait for user data to load before navigating
+      final authService = AuthService();
+      final success = await authService.getUserData(context);
+
+      if (success == true) {
+        navigate();
+      } else {
+        // Invalid session or error - go to welcome screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Welcome1Screen()),
+        );
+      }
     } catch (e) {
       debugPrint('Splash init error: $e');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const Welcome1Screen()),
+      );
     }
   }
 

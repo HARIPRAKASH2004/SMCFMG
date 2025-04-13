@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../providers/user_provider.dart';
 import '/modules/user/ProfilePage.dart';
 import './HomePage.dart';
 import './OrdersPage.dart';
@@ -37,6 +39,10 @@ class _UserPageState extends State<UserPage> {
   }
 
   Widget _buildCustomAppBar() {
+    final userProvider = Provider.of<UserProvider>(context);
+
+    bool isOnline = userProvider.user?.isOnline ?? false;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -53,19 +59,23 @@ class _UserPageState extends State<UserPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.circle,
-                    size: 10,
-                    color: isOnline ? Colors.green : Colors.grey,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    isOnline ? "Online" : "Offline",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Colors.black,
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.circle,
+                        size: 10,
+                        color: isOnline ? Colors.green : Colors.grey,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isOnline ? "Online" : "Offline",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -83,6 +93,8 @@ class _UserPageState extends State<UserPage> {
       ),
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {

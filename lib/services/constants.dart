@@ -31,5 +31,18 @@ class RESTURIConstants {
     url: "/user/data",
     method: get,
   );
+  static RestAPI logout() => RestAPI(
+    url: "/user/logout",
+    method: delete,
+  );
+  static RestAPI login() => RestAPI(
+    url: "/user/login",
+    method: post,
+  );
+  static RestAPI updateOnlineStatus() => RestAPI(
+    url: "/user/online-status",
+    method: put,
+  );
+
 }
 

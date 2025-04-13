@@ -19,6 +19,7 @@ class UserModel {
   final double rating;
   final String fcmToken;
   final String? profileImageUrl;
+  final String aadhaarNumber; // 🔥 NEW FIELD
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -43,6 +44,7 @@ class UserModel {
     required this.rating,
     required this.fcmToken,
     this.profileImageUrl,
+    required this.aadhaarNumber, // 🔥 NEW FIELD
     required this.createdAt,
     required this.updatedAt,
   });
@@ -69,6 +71,7 @@ class UserModel {
       rating: (map['rating'] ?? 0).toDouble(),
       fcmToken: (map['fcmToken'] ?? '').toString(),
       profileImageUrl: map['profileImageUrl']?.toString(),
+      aadhaarNumber: (map['aadhaarNumber'] ?? '').toString(), // 🔥 NEW FIELD
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
     );
@@ -96,6 +99,7 @@ class UserModel {
       'rating': rating,
       'fcmToken': fcmToken,
       'profileImageUrl': profileImageUrl,
+      'aadhaarNumber': aadhaarNumber, // 🔥 NEW FIELD
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -122,6 +126,7 @@ class UserModel {
     double? rating,
     String? fcmToken,
     String? profileImageUrl,
+    String? aadhaarNumber, // 🔥 NEW FIELD
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -146,6 +151,7 @@ class UserModel {
       rating: rating ?? this.rating,
       fcmToken: fcmToken ?? this.fcmToken,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      aadhaarNumber: aadhaarNumber ?? this.aadhaarNumber, // 🔥 NEW FIELD
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/user_provider.dart';
+import '../../services/auth_services.dart';
+import '../../utils/snackbar_util.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,9 +16,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late GoogleMapController mapController;
-  final LatLng _center = const LatLng(9.9252, 78.1198); // Madurai
-
-  bool isOnline = false;
 
   @override
   void initState() {
@@ -22,44 +24,79 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _requestPermission() async {
-    await Permission.location.request();
+    final status = await Permission.location.request();
+    if (status.isDenied) {
+      // You can handle the denied permission here if needed
+      showSnackBar(context, "Location permission is denied.");
+    }
+  }
+
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
   }
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final user = userProvider.user;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [
           Positioned.fill(
             top: 2,
-            child: _buildMap(),
+            child: _buildMap(
+              user.latitude != 0.0 ? user.latitude : 9.9252,
+              user.longitude != 0.0 ? user.longitude : 78.1198,
+            ),
           ),
-          // Align(
-          //   alignment: Alignment.topCenter,
-          //   child: _buildCustomAppBar(),
-          // ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: _buildBottomContent(),
+            child: _buildBottomContent(userProvider, context),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildMap(double lat, double lng) {
+    // Default to Madurai if coordinates are invalid
+    final LatLng target = (lat != 0.0 && lng != 0.0)
+        ? LatLng(lat, lng)
+        : const LatLng(9.9252, 78.1198); // Madurai coordinates
 
+    // Add a marker for Madurai
+    // final Marker maduraiMarker = Marker(
+    //   markerId: MarkerId('madurai'),
+    //   position: target,
+    //   infoWindow: InfoWindow(title: 'Madurai'), // This adds the label to the marker
+    // );
 
-  Widget _buildMap() {
     return GoogleMap(
-      onMapCreated: (controller) => mapController = controller,
-      initialCameraPosition: CameraPosition(target: _center, zoom: 12.0),
+      onMapCreated: _onMapCreated,
+      initialCameraPosition: CameraPosition(
+        target: target,
+        zoom: 12, // Adjusted zoom level for a broader view
+      ),
       myLocationEnabled: true,
       myLocationButtonEnabled: true,
       zoomControlsEnabled: false,
+      compassEnabled: true,
+      mapToolbarEnabled: false,
+      // markers: {maduraiMarker}, // Add the Madurai marker to the map
     );
   }
 
-  Widget _buildBottomContent() {
+
+
+  Widget _buildBottomContent(UserProvider userProvider, BuildContext context) {
+    final user = userProvider.user!;
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -73,31 +110,39 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildProfileSection(),
+          _buildProfileSection(user.profileImageUrl),
           const SizedBox(height: 10),
-          const Text("Welcome On Board",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            "Welcome On Board",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 6),
-          const Text("Mr. VINAYAK MAHADEV",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const Text("ID : SMG2025", style: TextStyle(color: Colors.grey)),
+          Text(
+            "Mr. ${user.name}",
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Text("ID : ${user.id}", style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 12),
           _buildSafeDriveText(),
           const SizedBox(height: 18),
-          _buildGoOnlineButton(),
+          _buildGoOnlineButton(userProvider, context)
         ],
       ),
     );
   }
 
-  Widget _buildProfileSection() {
+
+  Widget _buildProfileSection(String? imageUrl) {
     return Stack(
       alignment: Alignment.centerRight,
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 35,
           backgroundColor: Colors.blueAccent,
-          child: Icon(Icons.person, size: 40, color: Colors.white),
+          backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+          child: imageUrl == null
+              ? const Icon(Icons.person, size: 40, color: Colors.white)
+              : null,
         ),
       ],
     );
@@ -123,15 +168,20 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildGoOnlineButton() {
+  Widget _buildGoOnlineButton(UserProvider userProvider, BuildContext context) {
+    final user = userProvider.user!;
+    final isOnline = user.isOnline;
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {
-          setState(() {
-            isOnline = !isOnline;
-          });
+        onPressed: () async {
+          final authService = AuthService();
+          final success = await authService.updateOnlineStatus(context, !isOnline);
+
+          // ❌ No need to update provider here — it’s handled inside AuthService
         },
+
         style: ElevatedButton.styleFrom(
           backgroundColor: isOnline ? Colors.red : Colors.green,
           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -144,4 +194,5 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
 }

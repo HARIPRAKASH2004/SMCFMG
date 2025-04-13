@@ -5,8 +5,6 @@ import '../models/vechile.dart';
 import '../models/notification_model.dart';
 import '../models/location_log_model.dart';
 
-
-
 class UserProvider with ChangeNotifier {
   UserModel? _user;
   UserModel? get user => _user;
@@ -14,8 +12,6 @@ class UserProvider with ChangeNotifier {
   bool get isLoggedIn => _user != null;
   bool get isAdmin => _user?.type == 'admin';
   bool get isDriver => _user?.type == 'driver';
-
-
 
   void setUser(UserModel user) {
     _user = user;
@@ -52,6 +48,14 @@ class UserProvider with ChangeNotifier {
     }
   }
 
+  // Add a method to update the Aadhaar number
+  void updateAadhaarNumber(String newAadhaarNumber) {
+    if (_user != null) {
+      _user = _user!.copyWith(aadhaarNumber: newAadhaarNumber);
+      notifyListeners();
+    }
+  }
+
   void clearUser() {
     _user = null;
     _vehicle = null;
@@ -61,7 +65,6 @@ class UserProvider with ChangeNotifier {
     _currentLocation = null;
     notifyListeners();
   }
-
 
   VehicleModel? _vehicle;
   VehicleModel? get vehicle => _vehicle;
@@ -75,7 +78,6 @@ class UserProvider with ChangeNotifier {
     _vehicle = updatedVehicle;
     notifyListeners();
   }
-
 
   OrderModel? _currentOrder;
   List<OrderModel> _pastOrders = [];
@@ -105,8 +107,6 @@ class UserProvider with ChangeNotifier {
     _pastOrders.add(order);
     notifyListeners();
   }
-
-
 
   List<FcmLogModel> _notifications = [];
   List<FcmLogModel> get notifications => _notifications;
@@ -140,7 +140,6 @@ class UserProvider with ChangeNotifier {
       );
     }
 
-
     notifyListeners();
   }
 
@@ -149,4 +148,3 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-

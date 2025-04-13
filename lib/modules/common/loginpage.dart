@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';  // For SharedPreferences to store token
 
+import '../../services/auth_services.dart';
 import '../user/ForgotPasswordPage.dart';
 import '../user/RegisterPage.dart';
 import '../user/rootpage.dart';
-
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +15,8 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +100,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
+                  controller: emailController,
                   style: const TextStyle(fontSize: 13.5),
                   decoration: const InputDecoration(
                     hintText: 'Enter Email or Phone Number',
@@ -140,6 +144,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
+                  controller: passwordController,
                   obscureText: !_isPasswordVisible,
                   style: const TextStyle(fontSize: 13.5),
                   decoration: const InputDecoration(
@@ -198,7 +203,7 @@ class _LoginPageState extends State<LoginPage> {
             );
           },
           child: const Text(
-            'Forget Password ?',
+            'Forget Password?',
             style: TextStyle(
               fontSize: 12,
               color: Color(0xFF800038),
@@ -209,7 +214,6 @@ class _LoginPageState extends State<LoginPage> {
       ],
     );
   }
-
 
   Widget buildSignInButton() {
     return SizedBox(
@@ -223,12 +227,18 @@ class _LoginPageState extends State<LoginPage> {
           ),
           elevation: 0,
         ),
-        onPressed: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const UserPage()),
-          );
+        onPressed: () async {
+          if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
+            showSnackBar(context, "Please enter both email and password.");
+            return;
+          }
 
+          // Just call loginUser — let it handle everything
+          await AuthService().loginUser(
+            context: context,
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
         },
         child: const Text(
           'Sign In',
@@ -241,6 +251,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
 
   Widget buildDivider() {
     return const Center(
@@ -280,5 +291,9 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  void showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

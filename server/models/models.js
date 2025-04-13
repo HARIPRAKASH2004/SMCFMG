@@ -68,7 +68,7 @@ const User = sequelize.define('User', {
   },
   isOnline: {
     type: DataTypes.BOOLEAN,
-    defaultValue: false,
+    defaultValue: true,
   },
   availability: {
     type: DataTypes.ENUM('available', 'on_trip', 'unavailable'),
@@ -94,6 +94,18 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+
+  // 🔥 New field: Aadhaar Number
+  aadhaarNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true,
+    validate: {
+      len: [12, 12], // Aadhaar is 12 digits
+      isNumeric: true,
+    },
+  },
+
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
@@ -103,6 +115,7 @@ const User = sequelize.define('User', {
     defaultValue: DataTypes.NOW,
   },
 });
+
 
 // ✅ Location Model
 const Location = sequelize.define('Location', {

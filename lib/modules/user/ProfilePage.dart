@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_services.dart';
 import 'personal_info_page.dart';
 import 'vehicle_registration_page.dart';
 import 'change_password_page.dart';
 import 'settings_page.dart';
-import 'logout_page.dart';
+import 'package:provider/provider.dart'; // Make sure this is imported
+
+// Import your UserProvider
+import '../../providers/user_provider.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -15,6 +19,15 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
+    // Access UserProvider to get the user data
+    final userProvider = Provider.of<UserProvider>(context);
+    final user = userProvider.user;
+
+    if (user == null) {
+      // Handle loading or null user case
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -39,17 +52,17 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Color(0xFFF2DDE2),
+                color: const Color(0xFFF2DDE2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
-                  const CircleAvatar(
-                    backgroundColor: Color(0xFF843744),
+                  CircleAvatar(
+                    backgroundColor: const Color(0xFF843744),
                     radius: 20,
                     child: Text(
-                      'G',
-                      style: TextStyle(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U', // Display first letter of the user's name
+                      style: const TextStyle(
                         fontSize: 18,
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -59,18 +72,18 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
-                        'Leo Das',
-                        style: TextStyle(
+                        user.name, // Display the user's name
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'leodas02@gmail.com',
-                        style: TextStyle(
+                        user.email, // Display the user's email
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Colors.black87,
                         ),
@@ -133,10 +146,15 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => page),
-              );
+              if (title == 'Logout') {
+                // Directly call the logout function from AuthService
+                AuthService().logoutUser(context);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => page),
+                );
+              }
             },
           ),
         ],
