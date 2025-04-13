@@ -147,4 +147,9 @@ class UserProvider with ChangeNotifier {
     _currentLocation = null;
     notifyListeners();
   }
+
+  // Add the `getCurrentUser` method
+  UserModel? getCurrentUser() {
+    return _user;
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
+import '../../services/auth_services.dart';
 
 class PersonalInfoPage extends StatefulWidget {
   const PersonalInfoPage({super.key});
@@ -112,15 +113,22 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             // Save Button
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  // Save the Aadhaar number here
+                onPressed: () async {
                   String aadhaarNumber = _aadhaarController!.text;
+
                   if (aadhaarNumber.isNotEmpty) {
-                    // Save the Aadhaar number logic goes here
-                    userProvider.updateAadhaarNumber(aadhaarNumber);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Aadhaar updated successfully")),
-                    );
+                    // Call the update Aadhaar service method
+                    bool? success = await AuthService().updateAadhaarNumber(context, aadhaarNumber);
+
+                    if (success == true) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Aadhaar updated successfully")),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Failed to update Aadhaar number")),
+                      );
+                    }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Please enter a valid Aadhaar number")),
@@ -128,7 +136,8 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white, backgroundColor: Color(0xFF7B2C3B), // Text color
+                  foregroundColor: Colors.white,
+                  backgroundColor: Color(0xFF7B2C3B), // Text color
                   padding: EdgeInsets.symmetric(vertical: 14, horizontal: 30), // Padding
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12), // Rounded corners
@@ -145,7 +154,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 ),
               ),
             ),
-
           ],
         ),
       ),

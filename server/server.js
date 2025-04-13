@@ -220,6 +220,41 @@ app.put('/api/user/online-status', passport.authenticate('jwt', { session: false
 });
 
 
+app.put('/api/user/update-aadhaar', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const userId = req.user.id;
+  const { aadhaarNumber } = req.body;
+
+  console.log(`📡 Received Aadhaar number update for user ID: ${userId} → ${aadhaarNumber}`);
+
+  try {
+    // Validate input
+    if (!aadhaarNumber || typeof aadhaarNumber !== 'string' || aadhaarNumber.length !== 12) {
+      console.warn("⚠️ Invalid Aadhaar number received:", aadhaarNumber);
+      return res.status(400).json({ message: "Missing or invalid Aadhaar number." });
+    }
+
+    const user = await User.findOne({ where: { id: userId } });
+
+    if (!user) {
+      console.log("❌ User not found:", userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update Aadhaar number
+    user.aadhaarNumber = aadhaarNumber;
+    await user.save();
+
+    console.log(`✅ User ${userId}'s Aadhaar number updated successfully`);
+    return res.status(200).json({
+      message: 'Aadhaar number updated successfully',
+      aadhaarNumber: user.aadhaarNumber,
+    });
+
+  } catch (err) {
+    console.error("❌ Error updating Aadhaar number:", err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
 

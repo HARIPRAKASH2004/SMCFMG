@@ -305,6 +305,68 @@ class AuthService {
     }
   }
 
+  Future<bool?> updateAadhaarNumber(BuildContext context, String aadhaarNumber) async {
+    try {
+      // Retrieve the token from SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      if (token == null || token.isEmpty) {
+        showSnackBar(context, "Session expired. Please log in again.");
+        return false;
+      }
+
+      // Set headers for authorization and content type
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      // Prepare the body with the updated Aadhaar number
+      final body = {'aadhaarNumber': aadhaarNumber}; // Don't encode here
+
+      // Make the PUT request
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.updateAadhaarNumber(),
+        headers: headers,
+        body: body, // Pass raw Map, let APIHandler handle encoding
+      );
+
+      // Debugging: Output response code and body
+      debugPrint("Aadhaar Update Response Code: ${res.statusCode}");
+      debugPrint("Aadhaar Update Response Body: ${res.body}");
+
+      // If successful, update the user provider with the new Aadhaar number
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final String updatedAadhaarNumber = data['aadhaarNumber'] ?? '';
+
+        // Only update Provider *after* confirmation
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        userProvider.setUser(userProvider.user!.copyWith(aadhaarNumber: updatedAadhaarNumber));
+
+        // Show success message
+        showSnackBar(context, "Aadhaar updated successfully.");
+      }
+
+      // Handle response errors based on status code
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () {}, // Optional: Add more logic if needed
+        on400: () => showSnackBar(context, "Invalid Aadhaar number format."),
+        on401: () => showSnackBar(context, "Unauthorized."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Something went wrong."),
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint("UpdateAadhaarNumber Error: $e");
+      showSnackBar(context, "Failed to update Aadhaar number.");
+      return false;
+    }
+  }
 
 
 

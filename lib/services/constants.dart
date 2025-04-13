@@ -43,6 +43,11 @@ class RESTURIConstants {
     url: "/user/online-status",
     method: put,
   );
+  static RestAPI updateAadhaarNumber() => RestAPI(
+    url: "/user/update-aadhaar", // Update to the correct endpoint
+    method: put,
+  );
+
 
 }
 
