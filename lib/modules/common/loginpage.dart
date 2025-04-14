@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';  // For SharedPreferences to store token
-
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../services/auth_services.dart';
 import '../user/ForgotPasswordPage.dart';
 import '../user/RegisterPage.dart';
@@ -17,6 +17,44 @@ class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email'],
+    // force account picker every time
+    signInOption: SignInOption.standard,
+  );
+
+  void _handleGoogleSignIn(BuildContext context) async {
+    try {
+      // Force account picker
+      await _googleSignIn.signOut();
+
+      final GoogleSignInAccount? account = await _googleSignIn.signIn();
+      if (account != null) {
+        final GoogleSignInAuthentication auth = await account.authentication;
+        final idToken = auth.idToken;
+
+        if (idToken != null) {
+          // Send ID token to your backend
+          await AuthService().loginWithGoogleToken(
+            context: context,
+            idToken: idToken,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Unable to retrieve Google ID token')),
+          );
+        }
+      }
+    } catch (error) {
+      print("Google sign-in error: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to sign in with Google')),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 20),
               buildDivider(),
               const SizedBox(height: 14),
-              buildGoogleButton(),
+              buildGoogleButton(context),
             ],
           ),
         ),
@@ -266,7 +304,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget buildGoogleButton() {
+  Widget buildGoogleButton(BuildContext context) {
     return Container(
       width: double.infinity,
       height: 46,
@@ -275,7 +313,7 @@ class _LoginPageState extends State<LoginPage> {
         borderRadius: BorderRadius.circular(6),
       ),
       child: TextButton.icon(
-        onPressed: () {},
+        onPressed: () => _handleGoogleSignIn(context),
         icon: Image.asset(
           'assets/images/google.png',
           width: 20,
@@ -292,6 +330,8 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
+
 
   void showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));

@@ -125,12 +125,14 @@ app.post(`/api/user/login`, async (req, res) => {
 });
 
 
+
 // ✅ (Unchanged) Get User Data
 app.get('/api/user/data', passport.authenticate('jwt', { session: false }), async (req, res) => {
   const userId = req.user.id;
   console.log("🔐 Fetching basic user data for ID:", userId);
 
   try {
+    // Fetch user data
     const user = await User.findOne({ where: { id: userId } });
 
     if (!user) {
@@ -138,6 +140,10 @@ app.get('/api/user/data', passport.authenticate('jwt', { session: false }), asyn
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Fetch the user's vehicle details (if any)
+    const vehicle = await Vehicle.findOne({ where: { userId: userId } });
+
+    // Prepare safe user data
     const safeUser = {
       id: user.id || 'No ID',
       name: user.name || 'No name',
@@ -150,8 +156,26 @@ app.get('/api/user/data', passport.authenticate('jwt', { session: false }), asyn
       isOnline: user.isOnline,
       createdAt: user.createdAt || new Date(),
       aadhaarNumber: user.aadhaarNumber || 'No Aadhaar Number',
-      updatedAt: user.updatedAt || new Date()
+      updatedAt: user.updatedAt || new Date(),
     };
+
+    // If a vehicle exists, include it in the response
+    if (vehicle) {
+      const safeVehicle = {
+        id: vehicle.id,
+        vehicleNumber: vehicle.vehicleNumber,
+        vehicleType: vehicle.vehicleType,
+        model: vehicle.model,
+        brand: vehicle.brand,
+        year: vehicle.year,
+        status: vehicle.status,
+        createdAt: vehicle.createdAt || new Date(),
+        updatedAt: vehicle.updatedAt || new Date(),
+      };
+
+      // Add vehicle details to the user response
+      safeUser.vehicle = safeVehicle;
+    }
 
     console.log("🎉 User data fetched successfully:", safeUser);
     return res.status(200).json({ user: safeUser });
@@ -161,6 +185,7 @@ app.get('/api/user/data', passport.authenticate('jwt', { session: false }), asyn
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 app.delete('/api/user/logout', passport.authenticate('jwt', { session: false }), async (req, res) => {
   const userId = req.user.id;
@@ -258,9 +283,169 @@ app.put('/api/user/update-aadhaar', passport.authenticate('jwt', { session: fals
 
 
 
+app.post( '/api/vehicles/register',passport.authenticate('jwt', { session: false }), async (req, res) => {
+    const userId = req.user.id;
+    const vehicleData = req.body;
+
+    console.log(`🚚 Registering vehicle for user ID: ${userId}`);
+
+    try {
+      // Validate required fields (you can adjust this as needed)
+      const requiredFields = ['vehicleNumber', 'vehicleType'];
+      const missingFields = requiredFields.filter(field => !vehicleData[field]);
+
+      if (missingFields.length > 0) {
+        console.warn('⚠️ Missing vehicle fields:', missingFields);
+        return res.status(400).json({
+          message: `Missing required fields: ${missingFields.join(', ')}`,
+        });
+      }
+
+      // Create and save vehicle
+      const newVehicle = await Vehicle.create({
+        ...vehicleData,
+        userId, // Associate with the current user
+      });
+
+      console.log(`✅ Vehicle registered for user ${userId}:`, newVehicle.id);
+
+      return res.status(200).json({
+        message: 'Vehicle registered successfully',
+        vehicle: newVehicle,
+      });
+    } catch (err) {
+      console.error('❌ Error registering vehicle:', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
 
 
+app.put('/api/user/change-password', async (req, res) => {
+  const { password } = req.body;
+  const token = req.headers['authorization']?.split(' ')[1];
 
+  if (!password) {
+    console.log("❌ Missing new password in request body");
+    return res.status(400).json({ code: 1000, message: "Password is required" });
+  }
+
+  if (!token) {
+    console.log("❌ Missing authentication token");
+    return res.status(401).json({ code: 1002, message: "Authorization token missing" });
+  }
+
+  try {
+    // 🔍 Verify token
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = decoded.id;
+
+    console.log("🔐 Authenticated user ID:", userId);
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      console.log("❌ User not found for token ID:", userId);
+      return res.status(404).json({ code: 1003, message: "User not found" });
+    }
+
+    const hashedPassword = await argon2.hash(password);
+
+    // 🔁 Update password in a transaction
+    await sequelize.transaction(async (t) => {
+      await user.update({ password: hashedPassword }, { transaction: t });
+      console.log("✅ Password updated for user ID:", userId);
+    });
+
+    return res.status(200).json({ message: "Password updated successfully" });
+
+  } catch (err) {
+    console.error("❌ Change password error:", err);
+
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ code: 1004, message: "Invalid or expired token" });
+    }
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post(`/api/user/google-login`, async (req, res) => {
+  const { idToken, fcmToken, age, state, district, type, latitude, longitude } = req.body;
+
+  if (!idToken) {
+    console.log("❌ Missing Google ID token");
+    return res.status(400).json({ code: 1003, message: "Google ID token is required" });
+  }
+
+  try {
+    console.log("🔐 Verifying Google ID token...");
+
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId, picture } = payload;
+
+    if (!email) {
+      console.log("❌ Email not found in token");
+      return res.status(400).json({ code: 1004, message: "Invalid Google ID token" });
+    }
+
+    console.log("🔍 Looking up user by email:", email);
+    let user = await User.findOne({ where: { email } });
+
+    let statusCode = 200;
+
+    if (!user) {
+      console.log("🆕 Creating new user for Google login...");
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        profilePic: picture,
+        age: age || 0, // Set a default or handle this field accordingly
+        state: state || 'Unknown', // Set default
+        district: district || 'Unknown', // Set default
+        type: type || 'driver', // Set default
+        latitude: latitude || 0, // Set default
+        longitude: longitude || 0, // Set default
+      });
+      statusCode = 201;
+    } else {
+      console.log("✅ Existing user found. Updating Google info...");
+      await user.update({
+        googleId,
+        profilePic: picture,
+        age: age || user.age, // If age is provided, update; otherwise keep the existing value
+        state: state || user.state,
+        district: district || user.district,
+        type: type || user.type,
+        latitude: latitude || user.latitude,
+        longitude: longitude || user.longitude,
+      });
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+
+    if (fcmToken) {
+      await UserLog.upsert({ user_id: user.id, fcmToken });
+      console.log("📱 FCM token updated in UserLog");
+    }
+
+    console.log("✅ Google login successful. Sending token...");
+    res.setHeader('x-auth-token', token);
+    return res.status(statusCode).json({ message: "Google login successful" });
+
+  } catch (err) {
+    console.error("❌ Google login error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 
 

@@ -4,9 +4,7 @@ import 'personal_info_page.dart';
 import 'vehicle_registration_page.dart';
 import 'change_password_page.dart';
 import 'settings_page.dart';
-import 'package:provider/provider.dart'; // Make sure this is imported
-
-// Import your UserProvider
+import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -19,12 +17,10 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
-    // Access UserProvider to get the user data
     final userProvider = Provider.of<UserProvider>(context);
     final user = userProvider.user;
 
     if (user == null) {
-      // Handle loading or null user case
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -61,7 +57,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     backgroundColor: const Color(0xFF843744),
                     radius: 20,
                     child: Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U', // Display first letter of the user's name
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
                       style: const TextStyle(
                         fontSize: 18,
                         color: Colors.white,
@@ -74,7 +70,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user.name, // Display the user's name
+                        user.name,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -82,7 +78,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        user.email, // Display the user's email
+                        user.email,
                         style: const TextStyle(
                           fontSize: 13,
                           color: Colors.black87,
@@ -95,6 +91,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           const SizedBox(height: 30),
+
+          // Menu Items
           buildMenuItem(
             icon: Icons.person_outline,
             title: 'Personal Information',
@@ -108,17 +106,17 @@ class _ProfilePageState extends State<ProfilePage> {
           buildMenuItem(
             icon: Icons.lock_outline,
             title: 'Change password',
-            page: const ChangePasswordPage(),
+            page: const ChangePasswordScreen(),
           ),
           buildMenuItem(
             icon: Icons.settings_outlined,
             title: 'Settings',
-            page: const SettingsPage(),
+            page: const SettingsScreen(),
           ),
           buildMenuItem(
             icon: Icons.logout,
             title: 'Logout',
-            page: const SettingsPage(),
+            isLogout: true,
           ),
         ],
       ),
@@ -128,7 +126,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget buildMenuItem({
     required IconData icon,
     required String title,
-    required Widget page,
+    Widget? page,
+    bool isLogout = false,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -146,10 +145,9 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),
             onTap: () {
-              if (title == 'Logout') {
-                // Directly call the logout function from AuthService
+              if (isLogout) {
                 AuthService().logoutUser(context);
-              } else {
+              } else if (page != null) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => page),

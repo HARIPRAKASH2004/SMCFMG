@@ -1,3 +1,5 @@
+import 'package:track/models/vechile.dart';
+
 class UserModel {
   final String id;
   final String name;
@@ -19,9 +21,10 @@ class UserModel {
   final double rating;
   final String fcmToken;
   final String? profileImageUrl;
-  final String aadhaarNumber; // 🔥 NEW FIELD
+  final String aadhaarNumber;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final List<VehicleModel>? vehicles;
 
   UserModel({
     required this.id,
@@ -44,9 +47,10 @@ class UserModel {
     required this.rating,
     required this.fcmToken,
     this.profileImageUrl,
-    required this.aadhaarNumber, // 🔥 NEW FIELD
+    required this.aadhaarNumber,
     required this.createdAt,
     required this.updatedAt,
+    this.vehicles,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -71,9 +75,14 @@ class UserModel {
       rating: (map['rating'] ?? 0).toDouble(),
       fcmToken: (map['fcmToken'] ?? '').toString(),
       profileImageUrl: map['profileImageUrl']?.toString(),
-      aadhaarNumber: (map['aadhaarNumber'] ?? '').toString(), // 🔥 NEW FIELD
+      aadhaarNumber: (map['aadhaarNumber'] ?? '').toString(),
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
+      // Parse vehicles correctly here
+      vehicles: map['vehicles'] != null
+          ? List<VehicleModel>.from(
+          (map['vehicles'] as List).map((v) => VehicleModel.fromMap(v)))
+          : null,
     );
   }
 
@@ -99,9 +108,11 @@ class UserModel {
       'rating': rating,
       'fcmToken': fcmToken,
       'profileImageUrl': profileImageUrl,
-      'aadhaarNumber': aadhaarNumber, // 🔥 NEW FIELD
+      'aadhaarNumber': aadhaarNumber,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      // Map vehicles correctly here
+      'vehicles': vehicles?.map((v) => v.toMap()).toList(),
     };
   }
 
@@ -126,9 +137,10 @@ class UserModel {
     double? rating,
     String? fcmToken,
     String? profileImageUrl,
-    String? aadhaarNumber, // 🔥 NEW FIELD
+    String? aadhaarNumber,
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<VehicleModel>? vehicles,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -151,9 +163,10 @@ class UserModel {
       rating: rating ?? this.rating,
       fcmToken: fcmToken ?? this.fcmToken,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      aadhaarNumber: aadhaarNumber ?? this.aadhaarNumber, // 🔥 NEW FIELD
+      aadhaarNumber: aadhaarNumber ?? this.aadhaarNumber,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      vehicles: vehicles ?? this.vehicles,
     );
   }
 }

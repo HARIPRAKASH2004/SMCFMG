@@ -236,24 +236,24 @@ const Order = sequelize.define('Order', {
 const Vehicle = sequelize.define('Vehicle', {
   id: {
     type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
+    defaultValue: DataTypes.UUIDV4, // Automatically generates a UUID
+    primaryKey: true, // Primary key
   },
   userId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'User',
+      model: 'User', // Reference to the 'User' table
       key: 'id',
     },
   },
   vehicleNumber: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    unique: true, // Ensures vehicle number is unique
   },
   vehicleType: {
-    type: DataTypes.ENUM('lorry', 'mini-truck', 'trailer'),
+    type: DataTypes.ENUM('lorry', 'mini-truck', 'trailer', 'Truck'),
     allowNull: false,
   },
   model: {
@@ -268,17 +268,22 @@ const Vehicle = sequelize.define('Vehicle', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  fuelType: {
+    type: DataTypes.STRING,
+    allowNull: true, // Optional fuel type
+    comment: 'Fuel type of the vehicle (e.g., Petrol, Diesel)',
+  },
   rcBookUrl: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   insuranceUrl: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   insuranceExpiry: {
     type: DataTypes.DATE,
-    allowNull: false,
+    allowNull: true,
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive', 'in_maintenance'),
@@ -293,6 +298,7 @@ const Vehicle = sequelize.define('Vehicle', {
     defaultValue: DataTypes.NOW,
   },
 });
+
 
 // ✅ UserLog Model
 const UserLog = sequelize.define('UserLog', {

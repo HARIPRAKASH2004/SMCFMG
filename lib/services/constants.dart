@@ -39,6 +39,10 @@ class RESTURIConstants {
     url: "/user/login",
     method: post,
   );
+  static RestAPI googleLogin() => RestAPI(
+    url: "/user/google-login",
+    method: post,
+  );
   static RestAPI updateOnlineStatus() => RestAPI(
     url: "/user/online-status",
     method: put,
@@ -47,6 +51,15 @@ class RESTURIConstants {
     url: "/user/update-aadhaar", // Update to the correct endpoint
     method: put,
   );
+  static RestAPI registerVehicle() => RestAPI(
+    url: "/vehicles/register", // Updated endpoint path
+    method: post, // Use POST for creating resources like vehicles
+  );
+  static RestAPI updatePassword() => RestAPI(
+    url: "/user/change-password", // Updated endpoint path
+    method: put,
+  );
+
 
 
 }

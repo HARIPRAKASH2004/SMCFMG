@@ -73,7 +73,6 @@ class AuthService {
       return null;
     }
   }
-
   /// Fetch and set user data after login or registration
   Future<bool?> getUserData(BuildContext context) async {
     try {
@@ -123,7 +122,17 @@ class AuthService {
             return;
           }
 
-          userProvider.setUser(UserModel.fromMap(user));
+          // Parse vehicles if available
+          final vehiclesData = data['vehicles'] ?? [];
+          List<VehicleModel> vehicles = [];
+          if (vehiclesData.isNotEmpty) {
+            vehicles = List<VehicleModel>.from(
+                vehiclesData.map((vehicleData) => VehicleModel.fromMap(vehicleData))
+            );
+          }
+
+          // Update UserModel with vehicles
+          userProvider.setUser(UserModel.fromMap(user).copyWith(vehicles: vehicles));
 
           // ✅ IMMEDIATE redirection to SplashPage
           Navigator.pushAndRemoveUntil(
@@ -368,8 +377,172 @@ class AuthService {
     }
   }
 
+  Future<bool?> registerVehicle(BuildContext context, VehicleModel vehicle) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      if (token == null || token.isEmpty) {
+        showSnackBar(context, "Session expired. Please log in again.");
+        return false;
+      }
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      final body = vehicle.toMap();
+
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.registerVehicle(),
+        headers: headers,
+        body: body,
+      );
+
+      debugPrint("Vehicle Register Response Code: ${res.statusCode}");
+      debugPrint("Vehicle Register Response Body: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final VehicleModel newVehicle = VehicleModel.fromMap(data['vehicle']);
+
+        // ✅ Update UserProvider
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final currentUser = userProvider.user!;
+
+        // Update the list of vehicles
+        final updatedVehicles = [...(currentUser.vehicles ?? []), newVehicle];
+        userProvider.addVehicle(newVehicle);
 
 
+        // Set updated user with new vehicles list
+        // userProvider.setUser(currentUser.copyWith(vehicles: updatedVehicles));
+
+        showSnackBar(context, "Vehicle registered successfully!");
+      }
+
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () {},
+        on400: () => showSnackBar(context, "Invalid vehicle data."),
+        on401: () => showSnackBar(context, "Unauthorized."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Something went wrong."),
+      );
+
+      return res.statusCode == 200;
+    } catch (e) {
+      debugPrint("RegisterVehicle Error: $e");
+      showSnackBar(context, "Failed to register vehicle.");
+      return false;
+    }
+  }
+
+  Future<bool?> updatePassword(BuildContext context, String newPassword) async {
+    try {
+      // Retrieve the token from SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      if (token == null || token.isEmpty) {
+        showSnackBar(context, "Session expired. Please log in again.");
+        return false;
+      }
+
+      // Set headers for authorization and content type
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      // Prepare the body with the new password
+      final body = {'password': newPassword}; // Send plain Map
+
+      // Make the PUT request
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.updatePassword(),
+        headers: headers,
+        body: body, // Let APIHandler handle encoding
+      );
+
+      // Debugging logs
+      debugPrint("Password Update Response Code: ${res.statusCode}");
+      debugPrint("Password Update Response Body: ${res.body}");
+
+      if (res.statusCode == 200) {
+        showSnackBar(context, "Password updated successfully.");
+      }
+
+      // Handle various response codes
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () {}, // Optional: Add logic if needed
+        on400: () => showSnackBar(context, "Invalid password format."),
+        on401: () => showSnackBar(context, "Unauthorized."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Something went wrong."),
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint("UpdatePassword Error: $e");
+      showSnackBar(context, "Failed to update password.");
+      return false;
+    }
+  }
+
+  Future<bool?> loginWithGoogleToken({
+    required BuildContext context,
+    required String idToken,
+  }) async {
+    try {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+
+      final Map<String, dynamic> loginData = {
+        "idToken": idToken,
+        "fcmToken": fcmToken,
+      };
+
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.googleLogin(), // Define this endpoint in your REST constants
+        body: loginData,
+      );
+
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () => showSnackBar(context, "Google login successful!"),
+        on201: () => showSnackBar(context, "Logged in with Google!"),
+        on400: () => showSnackBar(context, "Invalid Google credentials."),
+        on401: () => showSnackBar(context, "Unauthorized access."),
+        on404: () => showSnackBar(context, "Endpoint not found."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Unexpected error."),
+      );
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final token = res.headers['x-auth-token'] ?? '';
+        if (token.isNotEmpty) {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('x-auth-token', token);
+          await getUserData(context); // Fetch user data after Google login
+          return true;
+        } else {
+          showSnackBar(context, "Authentication failed. Please try again.");
+          return false;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      debugPrint("Google Login Error: $e");
+      showSnackBar(context, "Something went wrong.");
+      return null;
+    }
+  }
 
 
 

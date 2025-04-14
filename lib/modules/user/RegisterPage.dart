@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '/services/auth_services.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -20,7 +21,41 @@ class _RegisterPageState extends State<RegisterPage> {
   bool isEmailValid(String input) {
     return RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").hasMatch(input);
   }
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email'],
+    // force account picker every time
+    signInOption: SignInOption.standard,
+  );
 
+  void _handleGoogleSignIn(BuildContext context) async {
+    try {
+      // Force account picker
+      await _googleSignIn.signOut();
+
+      final GoogleSignInAccount? account = await _googleSignIn.signIn();
+      if (account != null) {
+        final GoogleSignInAuthentication auth = await account.authentication;
+        final idToken = auth.idToken;
+
+        if (idToken != null) {
+          // Send ID token to your backend
+          await AuthService().loginWithGoogleToken(
+            context: context,
+            idToken: idToken,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Unable to retrieve Google ID token')),
+          );
+        }
+      }
+    } catch (error) {
+      print("Google sign-in error: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to sign in with Google')),
+      );
+    }
+  }
   void _register() async {
     String username = usernameController.text.trim();
     String email = emailController.text.trim();
@@ -89,7 +124,7 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 25),
               buildLoginDivider(),
               const SizedBox(height: 14),
-              buildGoogleButton(),
+              buildGoogleButton(context),
             ],
           ),
         ),
@@ -121,7 +156,7 @@ class _RegisterPageState extends State<RegisterPage> {
         const Text('Username', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
         const SizedBox(height: 6),
         buildTextField(
-          hintText: 'Naan than da LEO',
+          hintText: 'Enter Your Name',
           icon: Icons.person_outline,
           controller: usernameController,
         ),
@@ -133,10 +168,10 @@ class _RegisterPageState extends State<RegisterPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Email or Phone Number', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+        const Text('Email ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
         const SizedBox(height: 6),
         buildTextField(
-          hintText: 'Enter Email or Phone Number',
+          hintText: 'Enter  Your Email ',
           icon: Icons.alternate_email,
           controller: emailController,
         ),
@@ -209,20 +244,28 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget buildGoogleButton() {
+  Widget buildGoogleButton(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 45,
+      height: 46,
       decoration: BoxDecoration(
         color: const Color(0xFFF4F4F4),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: TextButton.icon(
-        onPressed: () {},
-        icon: Image.asset('assets/images/google.png', width: 20, height: 20),
+        onPressed: () => _handleGoogleSignIn(context),
+        icon: Image.asset(
+          'assets/images/google.png',
+          width: 20,
+          height: 20,
+        ),
         label: const Text(
           'Sign in with Google',
-          style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Colors.black),
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
         ),
       ),
     );
