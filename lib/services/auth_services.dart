@@ -55,6 +55,7 @@ class AuthService {
             on404: () => showSnackBar(context, "Endpoint not found."),
             on500: () => showSnackBar(context, "Server error."),
             onOther: () => showSnackBar(context, "Unexpected error."),
+        on403: ()=> showSnackBar(context, "Endpoint not found."),
           );
 
           if (res.statusCode == 200 || res.statusCode == 201) {
@@ -147,6 +148,7 @@ class AuthService {
         on401: () => showSnackBar(context, "Session expired. Please log in again."),
         on500: () => showSnackBar(context, "Internal server error."),
         onOther: () => showSnackBar(context, "Unexpected error."),
+        on403: ()=> showSnackBar(context, "Endpoint not found."),
       );
 
       return true;
@@ -232,7 +234,7 @@ class AuthService {
         on401: () => showSnackBar(context, "Unauthorized access."),
         on404: () => showSnackBar(context, "Endpoint not found."),
         on500: () => showSnackBar(context, "Server error."),
-        onOther: () => showSnackBar(context, "Unexpected error."),
+        onOther: () => showSnackBar(context, "Unexpected error."), on403: ()=> showSnackBar(context, "Endpoint not found."),
       );
 
       if (res.statusCode == 200 || res.statusCode == 201) {
@@ -305,6 +307,7 @@ class AuthService {
         on400: () => showSnackBar(context, "Invalid request."),
         on401: () => showSnackBar(context, "Unauthorized."),
         on500: () => showSnackBar(context, "Server error."),
+        on403: ()=> showSnackBar(context, "Endpoint not found."),
         onOther: () => showSnackBar(context, "Something went wrong."),
       );
 
@@ -368,6 +371,7 @@ class AuthService {
         on400: () => showSnackBar(context, "Invalid Aadhaar number format."),
         on401: () => showSnackBar(context, "Unauthorized."),
         on500: () => showSnackBar(context, "Server error."),
+        on403: ()=> showSnackBar(context, "Endpoint not found."),
         onOther: () => showSnackBar(context, "Something went wrong."),
       );
 
@@ -431,6 +435,7 @@ class AuthService {
         on400: () => showSnackBar(context, "Invalid vehicle data."),
         on401: () => showSnackBar(context, "Unauthorized."),
         on500: () => showSnackBar(context, "Server error."),
+        on403: ()=> showSnackBar(context, "Endpoint not found."),
         onOther: () => showSnackBar(context, "Something went wrong."),
       );
 
@@ -485,6 +490,7 @@ class AuthService {
         on400: () => showSnackBar(context, "Invalid password format."),
         on401: () => showSnackBar(context, "Unauthorized."),
         on500: () => showSnackBar(context, "Server error."),
+        on403: ()=> showSnackBar(context, "Endpoint not found."),
         onOther: () => showSnackBar(context, "Something went wrong."),
       );
 
@@ -521,6 +527,7 @@ class AuthService {
         on400: () => showSnackBar(context, "Invalid Google credentials."),
         on401: () => showSnackBar(context, "Unauthorized access."),
         on404: () => showSnackBar(context, "Endpoint not found."),
+        on403: ()=> showSnackBar(context, "Endpoint not found."),
         on500: () => showSnackBar(context, "Server error."),
         onOther: () => showSnackBar(context, "Unexpected error."),
       );
@@ -733,6 +740,7 @@ class AuthService {
         on201: () {}, // Optional
         on400: () => showSnackBar(context, "Invalid vendor data."),
         on401: () => showSnackBar(context, "Unauthorized."),
+        on403: ()=> showSnackBar(context, "Endpoint not found."),
         on500: () => showSnackBar(context, "Server error."),
         onOther: () => showSnackBar(context, "Something went wrong."),
       );
@@ -742,6 +750,340 @@ class AuthService {
       debugPrint("SubmitVendorDetails Error: $e");
       showSnackBar(context, "Failed to submit vendor.");
       return false;
+    }
+  }
+
+// HAVE BUGS IN THIS DELETE VENDOR
+  Future<void> deleteVendor(BuildContext context, String vendorId) async {
+    try {
+      // Step 1: Get token from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('x-auth-token');
+
+      if (token == null || token.isEmpty) {
+        showSnackBar(context, "Session expired. Please log in again.");
+        return;
+      }
+
+      // Step 2: Set Authorization headers
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      // Step 3: Send secure DELETE request
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.deleteVendor(vendorId),
+        headers: headers,
+      );
+
+      debugPrint("Delete Vendor Response Code: ${res.statusCode}");
+      debugPrint("Delete Vendor Response Body: ${res.body}");
+
+      // Step 4: Centralized response handling with token error mapping
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () {
+          final vendorProvider = Provider.of<VendorProvider>(context, listen: false);
+          vendorProvider.removeVendor(vendorId);
+          showSnackBar(context, "Vendor deleted successfully.");
+        },
+        on400: () => showSnackBar(context, "Invalid request."),
+        on401: () => showSnackBar(context, "Unauthorized."), // Token invalid or expired
+        on403: () => showSnackBar(context, "Permission denied."), // Admin not owner
+        on404: () => showSnackBar(context, "Vendor not found."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Something went wrong."),
+      );
+    } catch (e) {
+      debugPrint("DeleteVendor Error: $e");
+      showSnackBar(context, "Failed to delete vendor.");
+    }
+  }
+
+  Future<List<VendorModel>?> fetchActiveVendors(BuildContext context) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      if (token == null || token.isEmpty) {
+        showSnackBar(context, "Session expired. Please log in again.");
+        return null;
+      }
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      // Send the request to fetch vendors
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.fetchVendors(), // Example: '/api/vendors'
+        headers: headers,
+      );
+
+      debugPrint("Fetch Vendor Response Code: ${res.statusCode}");
+      debugPrint("Fetch Vendor Response Body: ${res.body}");
+
+      // Check if the status code is successful
+      if (res.statusCode == 200) {
+        // Parse the response body to get the list of vendors
+        List<dynamic> vendorsData = jsonDecode(res.body);
+
+        // Filter active vendors
+        List<VendorModel> activeVendors = vendorsData
+            .where((vendor) => vendor['status'] == 'Active')
+            .map((vendorJson) => VendorModel.fromMap(vendorJson))
+            .toList();
+
+        return activeVendors;
+      }
+
+      // Handle response based on status codes
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () {}, // Optional
+        on201: () {}, // Optional
+        on400: () => showSnackBar(context, "Invalid request."),
+        on401: () => showSnackBar(context, "Unauthorized."),
+        on403: () => showSnackBar(context, "Forbidden."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Something went wrong."),
+      );
+
+      return null;
+    } catch (e) {
+      debugPrint("FetchActiveVendors Error: $e");
+      showSnackBar(context, "Failed to fetch active vendors.");
+      return null;
+    }
+  }
+
+  Future<void> deleteUser(BuildContext context, String userId) async {
+    try {
+      // Step 1: Get token from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('x-auth-token');
+
+      if (token == null || token.isEmpty) {
+        showSnackBar(context, "Session expired. Please log in again.");
+        return;
+      }
+
+      // Step 2: Set Authorization headers
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      // Step 3: Send secure DELETE request
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.deleteUser(userId),
+        headers: headers,
+      );
+
+      debugPrint("Delete User Response Code: ${res.statusCode}");
+      debugPrint("Delete User Response Body: ${res.body}");
+
+      // Step 4: Centralized response handling
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () {
+          // You can call your provider method here if needed, e.g., removeUser(userId);
+          showSnackBar(context, "User deleted successfully.");
+        },
+        on400: () => showSnackBar(context, "Invalid request."),
+        on401: () => showSnackBar(context, "Unauthorized."),
+        on403: () => showSnackBar(context, "Permission denied."),
+        on404: () => showSnackBar(context, "User not found."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Something went wrong."),
+      );
+    } catch (e) {
+      debugPrint("DeleteUser Error: $e");
+      showSnackBar(context, "Failed to delete user.");
+    }
+  }
+
+  Future<Map<String, int>?> fetchDashboardSummary(BuildContext context) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      if (token == null || token.isEmpty) {
+        showSnackBar(context, "Session expired. Please log in again.");
+        return null;
+      }
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      // Send the request to fetch summary data
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.fetchDashboardSummary(), // Example: '/api/dashboard/summary'
+        headers: headers,
+      );
+
+      debugPrint("Fetch Dashboard Summary Response Code: ${res.statusCode}");
+      debugPrint("Fetch Dashboard Summary Response Body: ${res.body}");
+
+      // Check if the status code is successful
+      if (res.statusCode == 200) {
+        // Parse the response body to get the summary data
+        Map<String, dynamic> summaryData = jsonDecode(res.body);
+
+        // Convert to a map with integer values
+        return {
+          'totalOrders': summaryData['totalOrders'] ?? 0,
+          'totalVendors': summaryData['totalVendors'] ?? 0,
+          'totalDeliveryPartners': summaryData['totalDeliveryPartners'] ?? 0,
+        };
+      }
+
+      // Handle response based on status codes
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () {}, // Optional
+        on201: () {}, // Optional
+        on400: () => showSnackBar(context, "Invalid request."),
+        on401: () => showSnackBar(context, "Unauthorized."),
+        on403: () => showSnackBar(context, "Forbidden."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Something went wrong."),
+      );
+
+      return null;
+    } catch (e) {
+      debugPrint("FetchDashboardSummary Error: $e");
+      showSnackBar(context, "Failed to fetch dashboard summary.");
+      return null;
+    }
+  }
+
+  Future<bool?> assignOrder(BuildContext context, {
+    required String driverId,
+    required String vendorId,
+    required String phone,
+    required String location,
+  }) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      if (token == null || token.isEmpty) {
+        showSnackBar(context, "Session expired. Please log in again.");
+        return false;
+      }
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      final body = {
+        "driverId": driverId,
+        "vendorId": vendorId,
+        "phone": phone,
+        "location": location,
+      };
+
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.assignOrder(), // Example: '/api/orders/assign'
+        headers: headers,
+        body: body,
+         // Ensure POST is used
+      );
+
+      debugPrint("Assign Order Response Code: ${res.statusCode}");
+      debugPrint("Assign Order Response Body: ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        showSnackBar(context, "Order assigned successfully.");
+      }
+
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () {}, // Optional: success logic
+        on201: () {},
+        on400: () => showSnackBar(context, "Invalid order data."),
+        on401: () => showSnackBar(context, "Unauthorized."),
+        on403: () => showSnackBar(context, "Forbidden."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Something went wrong."),
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint("assignOrder Error: $e");
+      showSnackBar(context, "Failed to assign order.");
+      return false;
+    }
+  }
+
+  Future<List<OrderModel>> fetchOrders(BuildContext context) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      // Get the current user from UserProvider
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final user = userProvider.user;
+
+      debugPrint("Token: $token");
+      debugPrint("User ID: ${user?.id}");
+
+      if (token == null || token.isEmpty || user == null || user.id.isEmpty) {
+        await prefs.remove('x-auth-token');
+        showSnackBar(context, "Session expired or user not logged in. Please log in again.");
+        return [];
+      }
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      debugPrint("Request Headers: $headers");
+
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.getOrdersByUser(), // ← fixed here
+        headers: headers,
+      );
+
+      debugPrint("Response Status Code: ${res.statusCode}");
+      debugPrint("Response Body: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(res.body);
+        final List<OrderModel> orders = [];
+
+        final ordersData = data['orders'] ?? [];
+        for (var orderData in ordersData) {
+          orders.add(OrderModel.fromMap(orderData));
+        }
+
+        if (orders.isNotEmpty) {
+          userProvider.setOrders(orders); // Assuming this exists
+        } else {
+          showSnackBar(context, "No orders found for this user.");
+        }
+
+        return orders;
+      } else {
+        showSnackBar(context, "Failed to fetch orders. Error: ${res.statusCode}");
+        return [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching orders: $e");
+      showSnackBar(context, "Error fetching orders.");
+      return [];
     }
   }
 

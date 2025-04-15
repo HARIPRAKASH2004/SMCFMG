@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
-import 'package:track/services/auth_services.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../providers/vendor_provider.dart';
+import '../../services/auth_services.dart';
+import '../../services/constants.dart';
+import '../../utils/api_handler.dart';
+import '../../utils/snackbar_util.dart';
 import '/modules/admin/Add_Vendar.dart';
-// Assuming your fetch function is here
 
 class VendorPage extends StatefulWidget {
   @override
@@ -25,14 +30,14 @@ class _VendorPageState extends State<VendorPage> {
   }
 
   Future<void> fetchAndSetVendors() async {
-    final authservice=AuthService();
-    final vendors = await authservice.fetchVendorsWithProducts(context);
+    final vendors = await AuthService().fetchVendorsWithProducts(context);
     setState(() {
       filteredVendors = allVendors = vendors.map((v) => {
         'id': v.id,
         'name': v.name,
         'category': v.category,
         'location': v.location,
+        'city': v.city,
         'products': v.products.length,
         'status': v.status,
       }).toList();
@@ -70,19 +75,6 @@ class _VendorPageState extends State<VendorPage> {
     }
   }
 
-  String getActionText(String status) {
-    switch (status) {
-      case 'Active':
-        return 'Suspend';
-      case 'Pending':
-        return 'Approve';
-      case 'Suspended':
-        return 'Activate';
-      default:
-        return '';
-    }
-  }
-
   IconData getCategoryIcon(String category) {
     switch (category) {
       case 'Grocery':
@@ -99,12 +91,13 @@ class _VendorPageState extends State<VendorPage> {
   }
 
   void _onAddVendorTap() {
-    // Navigate to the AddVendorPage
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddVendorPage()), // Use your new page here
+      MaterialPageRoute(builder: (context) => AddVendorPage()),
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +160,6 @@ class _VendorPageState extends State<VendorPage> {
                 itemBuilder: (context, index) {
                   final vendor = filteredVendors[index];
                   final statusColor = getStatusColor(vendor['status']);
-                  final actionText = getActionText(vendor['status']);
                   final icon = getCategoryIcon(vendor['category']);
 
                   return Slidable(
@@ -176,18 +168,14 @@ class _VendorPageState extends State<VendorPage> {
                       motion: const ScrollMotion(),
                       children: [
                         SlidableAction(
-                          onPressed: (_) {},
-                          backgroundColor: Colors.blue,
+                          onPressed: (_) {
+                            final authService = AuthService();
+                            authService.deleteVendor(context, vendor['id']);
+                          },
+                          backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
-                          icon: Icons.edit,
-                          label: 'Edit',
-                        ),
-                        SlidableAction(
-                          onPressed: (_) {},
-                          backgroundColor: statusColor,
-                          foregroundColor: Colors.white,
-                          icon: Icons.block,
-                          label: actionText,
+                          icon: Icons.delete,
+                          label: 'Delete',
                         ),
                       ],
                     ),
@@ -242,8 +230,7 @@ class _VendorPageState extends State<VendorPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                Text(vendor['id'], style: TextStyle(color: Colors.grey[700])),
-                                Text('${vendor['category']} • ${vendor['location']}'),
+                                Text('${vendor['category']} • ${vendor['city']}'),
                                 Text('Products: ${vendor['products']}'),
                               ],
                             ),
@@ -258,8 +245,6 @@ class _VendorPageState extends State<VendorPage> {
           ),
         ],
       ),
-
-      // ✅ Floating Action Button
       floatingActionButton: FloatingActionButton(
         onPressed: _onAddVendorTap,
         backgroundColor: Colors.blueAccent,

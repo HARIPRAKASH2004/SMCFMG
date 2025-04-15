@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '/services/auth_services.dart'; // Replace with actual path
+import '/services/auth_services.dart';
+import 'Assign_patner.dart'; // Replace with actual path
 
 class PartnersPage extends StatefulWidget {
   @override
@@ -193,14 +194,31 @@ class _PartnersPageState extends State<PartnersPage> {
                           elevation: 2,
                         ),
                         onPressed: () {
+                          // Assuming the userId is stored in a variable called `userId`
+                          // Replace with the actual userId you want to pass
+
+                          // Navigate to AssignOrderPage and send the userId
+                          print('Driver full object: $driver');
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AssignOrderPage(driverId: driver['id'] ?? ''),
+                            ),
+                          );
+
+
+
+                          // Optionally, you can show a SnackBar or some other indication
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Assigning order...')),
                           );
                         },
                       ),
+
                       OutlinedButton.icon(
                         icon: const Icon(Icons.block, color: Colors.red, size: 20),
-                        label: const Text("Block", style: TextStyle(color: Colors.red, fontSize: 15)),
+                        label: const Text("Delete", style: TextStyle(color: Colors.red, fontSize: 15)),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.red),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -222,7 +240,7 @@ class _PartnersPageState extends State<PartnersPage> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Text(
-                                        "Block Driver",
+                                        "Delete Driver",
                                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                       ),
                                       const SizedBox(height: 12),
@@ -237,17 +255,24 @@ class _PartnersPageState extends State<PartnersPage> {
                                       const SizedBox(height: 14),
                                       ElevatedButton.icon(
                                         icon: const Icon(Icons.block),
-                                        label: const Text("Confirm Block"),
+                                        label: const Text("Confirm Delete"),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.red,
                                           foregroundColor: Colors.white,
                                         ),
-                                        onPressed: () {
+                                        onPressed: () async {
                                           Navigator.pop(context);
+                                          Navigator.pop(context);
+                                          // First, close the current page (pop
+                                          // Call the deleteUser function to delete the driver based on the entered reason
+                                          String? userId = driver['id']; // Replace this with the actual driver ID you want to delete
+                                          await AuthService().deleteUser(context, userId!);
+                                          // Show the snackbar with the reason for blocking
                                           ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Driver blocked: ${reasonController.text}')),
+                                            SnackBar(content: Text('Driver deleted: ${reasonController.text}')),
                                           );
                                         },
+
                                       ),
                                     ],
                                   ),

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // For making network requests
+import 'dart:convert'; // For JSON decoding
+
 import '../models/users.dart';
 import '../models/vechile.dart';
 import '../models/orders.dart';
@@ -20,7 +23,32 @@ class VendorProvider with ChangeNotifier {
 
   // Stores notifications for vendors
   List<FcmLogModel> _notifications = [];
-  List<FcmLogModel> get notifications => _notifications; // Public getter for notifications
+  List<FcmLogModel> get notifications => _notifications;
+
+  // Stores active vendors (filter by status 'active')
+  List<UserModel> _activeVendors = [];
+  List<UserModel> get activeVendors => _activeVendors;
+
+  // Fetch active vendors from backend (for example)
+  Future<void> fetchActiveVendors() async {
+    try {
+      final response = await http.get(Uri.parse('https://your-api-endpoint.com/activeVendors'));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        // Filter active vendors
+        _activeVendors = data
+            .map((vendor) => UserModel.fromMap(vendor))
+            .where((vendor) => vendor.status == 'active')
+            .toList();
+        notifyListeners();
+      } else {
+        throw Exception('Failed to load active vendors');
+      }
+    } catch (error) {
+      throw error; // You can handle errors here with some user-friendly message
+    }
+  }
 
   // Set the list of vendors
   void setVendors(List<UserModel> vendors) {

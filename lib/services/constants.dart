@@ -11,8 +11,8 @@ class RestAPI {
 }
 
 class Constants {
-  static const String uri = "http://192.168.53.132:5000";
- // static const String uri = "https://192.168.53.132:5000";
+   static const String uri = "http://192.168.53.132:5000";
+  // static const String uri = "https://track-bcakend-production.up.railway.app";
   static const vapidKey =
       "BGm0V2dKGdvYkJdMUi3Uzmjc0FVFkGzpYN19llpiU_KuYQUjZfdkr1Iov6qPliZT7cSS1tTjd0McNSYraiVGgj8";
 }
@@ -71,6 +71,32 @@ class RESTURIConstants {
     url: "/admin/vendordetail", // Updated endpoint path
     method: post,
   );
+  static RestAPI deleteVendor(String vendorId) => RestAPI(
+    url: "/admin/delete-vendor/$vendorId", // Updated endpoint path
+    method: delete,
+  );
+  static RestAPI fetchVendors() => RestAPI(
+    url: "/admin/activeVendors", // Updated endpoint path
+    method: get,
+  );
+  static RestAPI deleteUser(String UserId) => RestAPI(
+    url: "/admin/delete-user/$UserId", // Updated endpoint path
+    method: delete,
+  );
+  static RestAPI fetchDashboardSummary() => RestAPI(
+    url: "/admin/dashboard-summary", // Updated endpoint path
+    method: get,
+  );
+  static RestAPI assignOrder() => RestAPI(
+    url: "/admin/assign-order", // Updated endpoint path
+    method: post,
+  );
+  static RestAPI getOrdersByUser() => RestAPI(
+    url: "/user/user-order", // Endpoint uses token to identify user
+    method: get,
+  );
+
+
 
 
 

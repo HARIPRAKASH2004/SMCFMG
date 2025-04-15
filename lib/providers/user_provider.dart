@@ -7,14 +7,17 @@ import '../models/location_log_model.dart';
 
 class UserProvider with ChangeNotifier {
   UserModel? _user;
-  List<UserModel> _drivers = [];  // Add this private field to store drivers
-  List<UserModel> get drivers => _drivers;  // Public getter to access drivers
+  List<UserModel> _drivers = []; // Add this private field to store drivers
+  List<UserModel> get drivers => _drivers; // Public getter to access drivers
 
   UserModel? get user => _user;
 
   bool get isLoggedIn => _user != null;
 
   bool get isAdmin => _user?.type == 'admin';
+  List<OrderModel> _orders = [];
+
+  List<OrderModel> get orders => _orders;
 
   bool get isDriver => _user?.type == 'driver';
 
@@ -58,39 +61,8 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  // Update the user's Aadhaar number
-  void updateAadhaarNumber(String newAadhaarNumber) {
-    if (_user != null) {
-      _user = _user!.copyWith(aadhaarNumber: newAadhaarNumber);
-      notifyListeners();
-    }
-  }
-
-  // Clear all user data (including vehicles, orders, and location)
-  void clearUser() {
-    _user = null;
-    _vehicle = null;
-    _currentOrder = null;
-    _pastOrders = [];
-    _notifications = [];
-    _currentLocation = null;
-    notifyListeners();
-  }
-
-  // Vehicle handling
-  VehicleModel? _vehicle;
-
-  VehicleModel? get vehicle => _vehicle;
-
-  // Set a single vehicle
-  void setVehicle(VehicleModel vehicle) {
-    _vehicle = vehicle;
-    notifyListeners();
-  }
-
-  // Update the current vehicle
-  void updateVehicle(VehicleModel updatedVehicle) {
-    _vehicle = updatedVehicle;
+  void setOrders(List<OrderModel> orders) {
+    _orders = orders;
     notifyListeners();
   }
 
@@ -193,16 +165,13 @@ class UserProvider with ChangeNotifier {
   }
 
   // Add a single vehicle to the user's list of vehicles
-// Add a single vehicle to the user's list of vehicles
   void addVehicle(VehicleModel vehicle) {
-    // Update _vehicles list
     if (_vehicles == null) {
       _vehicles = [vehicle];
     } else {
       _vehicles!.add(vehicle);
     }
 
-    // Update user model's vehicle list as well
     if (_user != null) {
       final updatedList = [...?_user!.vehicles, vehicle];
       _user = _user!.copyWith(vehicles: updatedList);
@@ -210,7 +179,6 @@ class UserProvider with ChangeNotifier {
 
     notifyListeners();
   }
-
 
   // Update vehicle in the list by replacing it
   void updateVehicleInList(VehicleModel updatedVehicle) {
@@ -222,7 +190,6 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-
   // Remove a vehicle from the user's list
   void removeVehicle(String vehicleId) {
     if (_vehicles != null) {
@@ -230,10 +197,40 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // Manage drivers
   void setDrivers(List<UserModel> drivers) {
-    _drivers = drivers; // Assuming _drivers is a private field in UserProvider
+    _drivers = drivers;
     notifyListeners();
   }
+
+  // Additional order methods to manage drivers' orders
+  void assignOrderToDriver(OrderModel order) {
+    if (_user != null && _user!.type == 'driver') {
+      _currentOrder =
+          order; // Assign the order to the current driver's active order
+      notifyListeners();
+    }
+  }
+
+  // Remove order from the driver's list of past orders
+  void removeOrderFromPastOrders(String orderId) {
+    _pastOrders.removeWhere((order) => order.orderId == orderId);
+    notifyListeners();
+  }
+
+  // Fetch and set drivers' orders (e.g., pending, completed)
+  void setDriverOrders(List<OrderModel> orders) {
+    _pastOrders = orders;
+    notifyListeners();
+  }
+
+  void clearUser() {
+    _user = null;
+    _orders = [];
+    notifyListeners();
+  }
+
 
 
 }

@@ -21,6 +21,7 @@ class HTTPResponseHandler {
     ResponseCallback? on201,
     ResponseCallback? on400,
     ResponseCallback? on401,
+    required ResponseCallback on403,
     ResponseCallback? on404,
     ResponseCallback? on500,
     ResponseCallback? onOther,
@@ -43,6 +44,10 @@ class HTTPResponseHandler {
         case 401:
           showSnackBar(context, 'Unauthorized. Please log in again.');
           if (on401 != null) on401();
+          break;
+        case 403:
+          showSnackBar(context, 'Access forbidden.');
+          on403();
           break;
         case 404:
           showSnackBar(context, 'Resource not found.');
@@ -115,6 +120,7 @@ class HTTPResponseHandler {
     required DataCallback on200,
     ResponseCallback? on400,
     ResponseCallback? on401,
+    required ResponseCallback on403,
     ResponseCallback? on500,
     ResponseCallback? onOther,
   }) async {
@@ -134,6 +140,10 @@ class HTTPResponseHandler {
         case 401:
           showSnackBar(context, 'Unauthorized access.');
           if (on401 != null) on401();
+          break;
+        case 403:
+          showSnackBar(context, 'Access forbidden.');
+          on403();
           break;
         case 500:
           showSnackBar(context, 'Server error.');
