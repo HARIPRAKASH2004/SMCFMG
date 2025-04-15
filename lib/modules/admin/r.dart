@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '/services/auth_services.dart'; // Replace with actual path
 
 class PartnersPage extends StatefulWidget {
   @override
@@ -7,61 +6,21 @@ class PartnersPage extends StatefulWidget {
 }
 
 class _PartnersPageState extends State<PartnersPage> {
-  final List<Map<String, String>> drivers = [];
+  final List<Map<String, String>> drivers = [
+    {'id': '#D-001', 'name': 'John Driver', 'city': 'Chennai', 'vehicle': 'Truck - TN10 AB1234', 'status': 'Active', 'icon': '🚛'},
+    {'id': '#D-002', 'name': 'Arun Kumar', 'city': 'Coimbatore', 'vehicle': 'Van - TN20 XY5678', 'status': 'Active', 'icon': '🚐'},
+    {'id': '#D-003', 'name': 'Sara Ali', 'city': 'Madurai', 'vehicle': 'Pickup - KA01 CD4321', 'status': 'Pending', 'icon': '🚙'},
+  ];
+
   List<Map<String, String>> filteredDrivers = [];
-  bool isLoading = false;
   String search = '';
   String selectedFilter = 'All';
 
   @override
   void initState() {
     super.initState();
-    fetchDriversFromBackend();
+    filteredDrivers = drivers;
   }
-
-
-  Future<void> fetchDriversFromBackend() async {
-    try {
-      setState(() {
-        isLoading = true; // Start loading
-      });
-
-      final fetchedDrivers = await AuthService().fetchDrivers(context); // Make API call
-
-      drivers.clear();
-      for (var driver in fetchedDrivers) {
-        final firstVehicle = (driver.vehicles != null && driver.vehicles!.isNotEmpty)
-            ? driver.vehicles!.first
-            : null;
-
-        drivers.add({
-          'id': driver.id ?? '',
-          'name': driver.name ?? '',
-          'city': driver.city ?? '',
-          'vehicle': firstVehicle != null
-              ? '${firstVehicle.vehicleType ?? ''} - ${firstVehicle.vehicleNumber ?? ''}'
-              : 'No Vehicle',
-          'status': driver.status ?? 'Pending',
-          'icon': '🚚',
-        });
-      }
-
-      setState(() {
-        filteredDrivers = selectedFilter == 'All'
-            ? drivers
-            : drivers.where((d) => d['status'] == selectedFilter).toList();
-      });
-    } catch (e) {
-      debugPrint("Error fetching drivers: $e");
-      // Optionally showSnackBar here
-    } finally {
-      setState(() {
-        isLoading = false; // End loading
-      });
-    }
-  }
-
-
 
   void filterDrivers(String query) {
     setState(() {
@@ -77,17 +36,18 @@ class _PartnersPageState extends State<PartnersPage> {
     setState(() {
       selectedFilter = status;
       filteredDrivers = drivers.where((driver) {
-        final matchesStatus = status == 'All' || driver['status'] == status;
-        final matchesSearch = driver['name']!.toLowerCase().contains(search.toLowerCase()) ||
-            driver['city']!.toLowerCase().contains(search.toLowerCase());
-        return matchesStatus && matchesSearch;
+        return status == 'All' || driver['status'] == status;
       }).toList();
     });
   }
 
-
   Future<void> _refreshDrivers() async {
-    await fetchDriversFromBackend();
+    await Future.delayed(const Duration(seconds: 1)); // Simulate fetch
+    setState(() {
+      filteredDrivers = selectedFilter == 'All'
+          ? drivers
+          : drivers.where((driver) => driver['status'] == selectedFilter).toList();
+    });
   }
 
   void _showDriverDetails(Map<String, String> driver) {
@@ -144,6 +104,8 @@ class _PartnersPageState extends State<PartnersPage> {
                     style: const TextStyle(fontSize: 14, color: Colors.black45),
                   ),
                   const SizedBox(height: 10),
+
+                  // Status as a pill
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
@@ -160,17 +122,20 @@ class _PartnersPageState extends State<PartnersPage> {
                     driver['id'] ?? '',
                     style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
+
                   const SizedBox(height: 24),
                   const Divider(thickness: 1.2),
                   const SizedBox(height: 16),
+
+                  // Action buttons
                   Wrap(
                     spacing: 14,
                     runSpacing: 14,
                     alignment: WrapAlignment.center,
                     children: [
                       ElevatedButton.icon(
-                        icon: const Icon(Icons.call, size: 20, color: Colors.white),
-                        label: const Text("Call", style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.bold)),
+                        icon: const Icon(Icons.call, size: 20,color: Colors.white,),
+                        label: const Text("Call", style: TextStyle(fontSize: 15,color: Colors.white,fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green.shade600,
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -184,8 +149,8 @@ class _PartnersPageState extends State<PartnersPage> {
                         },
                       ),
                       ElevatedButton.icon(
-                        icon: const Icon(Icons.assignment, size: 20, color: Colors.white),
-                        label: const Text("Assign Order", style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.bold)),
+                        icon: const Icon(Icons.assignment, size: 20,color: Colors.white,),
+                        label: const Text("Assign Order", style: TextStyle(fontSize: 15,color: Colors.white,fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue.shade600,
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -276,7 +241,7 @@ class _PartnersPageState extends State<PartnersPage> {
       case 'Pending':
         return Colors.orange.shade600;
       default:
-        return Colors.green.shade600;
+        return Colors.grey.shade600;
     }
   }
 
@@ -287,7 +252,7 @@ class _PartnersPageState extends State<PartnersPage> {
       case 'Pending':
         return Icons.hourglass_bottom;
       default:
-        return Icons.check_circle;
+        return Icons.block;
     }
   }
 
@@ -304,11 +269,7 @@ class _PartnersPageState extends State<PartnersPage> {
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
         ),
       ),
-      body: isLoading
-          ? const Center(
-        child: CircularProgressIndicator(), // Show loading spinner
-      )
-          : Column(
+      body: Column(
         children: [
           const SizedBox(height: 10),
           _buildSearchBar(),
@@ -318,9 +279,7 @@ class _PartnersPageState extends State<PartnersPage> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refreshDrivers,
-              child: filteredDrivers.isEmpty
-                  ? const Center(child: Text("No drivers found"))
-                  : ListView.builder(
+              child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: filteredDrivers.length,
                 itemBuilder: (context, index) {
@@ -331,7 +290,6 @@ class _PartnersPageState extends State<PartnersPage> {
           ),
         ],
       ),
-
     );
   }
 
@@ -388,99 +346,57 @@ class _PartnersPageState extends State<PartnersPage> {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
-      margin: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+      margin: const EdgeInsets.only(bottom: 16),
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        elevation: 6,
-        shadowColor: Colors.black.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(18),
+        elevation: 3,
         child: InkWell(
           onTap: () => _showDriverDetails(driver),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  radius: 30,
-                  backgroundColor: const Color(0xFFEAF0FA),
-                  child: Text(
-                    driver['icon'] ?? '👤',
-                    style: const TextStyle(fontSize: 26),
-                  ),
+                  radius: 28,
+                  backgroundColor: const Color(0xFFF0F0F0),
+                  child: Text(driver['icon'] ?? '👤', style: const TextStyle(fontSize: 24)),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
-                  flex: 3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        driver['name'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2D2D2D),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Icon(Icons.local_shipping_rounded, size: 14, color: Colors.grey[600]),
-                          Text(
-                            driver['vehicle'] ?? 'Unknown Vehicle',
-                            style: const TextStyle(fontSize: 13.5, color: Colors.black54),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Icon(Icons.location_on_rounded, size: 14, color: Colors.grey[600]),
-                          Text(
-                            driver['city'] ?? 'Unknown City',
-                            style: const TextStyle(fontSize: 13.5, color: Colors.black54),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
+                      Text(driver['name'] ?? '', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
-                      Text(
-                        'ID: ${driver['id'] ?? 'N/A'}',
-                        style: const TextStyle(fontSize: 12.5, color: Colors.grey),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      Text('${driver['vehicle']} • ${driver['city']}', style: const TextStyle(fontSize: 13.5, color: Colors.grey)),
+                      const SizedBox(height: 4),
+                      Text(driver['id'] ?? '', style: const TextStyle(fontSize: 12.5, color: Colors.grey)),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Flexible(
-                  flex: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Icon(statusIcon, color: statusColor, size: 22),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          driver['status']?.toUpperCase() ?? '',
-                          style: TextStyle(
-                            color: statusColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12.5,
-                            letterSpacing: 0.4,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Icon(statusIcon, color: statusColor, size: 20),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        driver['status'] ?? '',
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12.5,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -489,6 +405,4 @@ class _PartnersPageState extends State<PartnersPage> {
       ),
     );
   }
-
-
 }

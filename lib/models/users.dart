@@ -7,7 +7,7 @@ class UserModel {
   final String email;
   final String phone;
   final String password;
-  final String state;
+  final String city;
   final String district;
   final String type; // 'driver' or 'admin'
   final String status; // 'active', 'inactive', 'blocked'
@@ -33,7 +33,7 @@ class UserModel {
     required this.email,
     required this.phone,
     required this.password,
-    required this.state,
+    required this.city,
     required this.district,
     required this.type,
     required this.status,
@@ -61,7 +61,7 @@ class UserModel {
       email: (map['email'] ?? '').toString(),
       phone: (map['phone'] ?? '').toString(),
       password: (map['password'] ?? '').toString(),
-      state: (map['state'] ?? '').toString(),
+      city: (map['city'] ?? '').toString(),
       district: (map['district'] ?? '').toString(),
       type: (map['type'] ?? '').toString(),
       status: (map['status'] ?? '').toString(),
@@ -94,7 +94,7 @@ class UserModel {
       'email': email,
       'phone': phone,
       'password': password,
-      'state': state,
+      'city': city,
       'district': district,
       'type': type,
       'status': status,
@@ -123,7 +123,7 @@ class UserModel {
     String? email,
     String? phone,
     String? password,
-    String? state,
+    String? city,
     String? district,
     String? type,
     String? status,
@@ -149,7 +149,7 @@ class UserModel {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       password: password ?? this.password,
-      state: state ?? this.state,
+      city: city ?? this.city,
       district: district ?? this.district,
       type: type ?? this.type,
       status: status ?? this.status,

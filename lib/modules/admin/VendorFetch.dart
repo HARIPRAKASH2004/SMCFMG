@@ -2,8 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-
-void main() => runApp(MaterialApp(home: VendorPage(), debugShowCheckedModeBanner: false));
+import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
+import 'package:track/services/auth_services.dart';
+import '/modules/admin/Add_Vendar.dart';
+// Assuming your fetch function is here
 
 class VendorPage extends StatefulWidget {
   @override
@@ -11,49 +13,7 @@ class VendorPage extends StatefulWidget {
 }
 
 class _VendorPageState extends State<VendorPage> {
-  final List<Map<String, dynamic>> allVendors = [
-    {
-      'id': '#V-001',
-      'name': 'Chennai Fresh Market',
-      'category': 'Grocery',
-      'location': 'Chennai',
-      'products': 124,
-      'status': 'Active'
-    },
-    {
-      'id': '#V-002',
-      'name': 'Tamil Tasty Foods',
-      'category': 'Restaurant',
-      'location': 'Coimbatore',
-      'products': 87,
-      'status': 'Active'
-    },
-    {
-      'id': '#V-003',
-      'name': 'Chettinad Corner',
-      'category': 'Restaurant',
-      'location': 'Madurai',
-      'products': 45,
-      'status': 'Pending'
-    },
-    {
-      'id': '#V-004',
-      'name': 'Madurai Electronics',
-      'category': 'Electronics',
-      'location': 'Madurai',
-      'products': 89,
-      'status': 'Active'
-    },
-    {
-      'id': '#V-005',
-      'name': 'Coimbatore Home Needs',
-      'category': 'Home Goods',
-      'location': 'Coimbatore',
-      'products': 156,
-      'status': 'Suspended'
-    },
-  ];
-
+  List<Map<String, dynamic>> allVendors = [];
   List<Map<String, dynamic>> filteredVendors = [];
   String search = '';
   String selectedCategory = 'All';
@@ -61,7 +21,22 @@ class _VendorPageState extends State<VendorPage> {
   @override
   void initState() {
     super.initState();
-    filteredVendors = allVendors;
+    fetchAndSetVendors();
+  }
+
+  Future<void> fetchAndSetVendors() async {
+    final authservice=AuthService();
+    final vendors = await authservice.fetchVendorsWithProducts(context);
+    setState(() {
+      filteredVendors = allVendors = vendors.map((v) => {
+        'id': v.id,
+        'name': v.name,
+        'category': v.category,
+        'location': v.location,
+        'products': v.products.length,
+        'status': v.status,
+      }).toList();
+    });
   }
 
   void filterVendors(String query) {
@@ -123,10 +98,18 @@ class _VendorPageState extends State<VendorPage> {
     }
   }
 
+  void _onAddVendorTap() {
+    // Navigate to the AddVendorPage
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddVendorPage()), // Use your new page here
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xfff0f2f5),
+      backgroundColor: const Color(0xfff0f2f5),
       appBar: AppBar(
         title: Text('Vendors', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         centerTitle: true,
@@ -169,103 +152,119 @@ class _VendorPageState extends State<VendorPage> {
                   .toList(),
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              itemCount: filteredVendors.length,
-              itemBuilder: (context, index) {
-                final vendor = filteredVendors[index];
-                final statusColor = getStatusColor(vendor['status']);
-                final actionText = getActionText(vendor['status']);
-                final icon = getCategoryIcon(vendor['category']);
+            child: LiquidPullToRefresh(
+              onRefresh: fetchAndSetVendors,
+              animSpeedFactor: 2,
+              showChildOpacityTransition: false,
+              color: Colors.blueAccent,
+              backgroundColor: Colors.white,
+              child: ListView.builder(
+                physics: AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: filteredVendors.length,
+                itemBuilder: (context, index) {
+                  final vendor = filteredVendors[index];
+                  final statusColor = getStatusColor(vendor['status']);
+                  final actionText = getActionText(vendor['status']);
+                  final icon = getCategoryIcon(vendor['category']);
 
-                return Slidable(
-                  key: ValueKey(vendor['id']),
-                  endActionPane: ActionPane(
-                    motion: ScrollMotion(),
-                    children: [
-                      SlidableAction(
-                        onPressed: (_) {},
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        icon: Icons.edit,
-                        label: 'Edit',
-                      ),
-                      SlidableAction(
-                        onPressed: (_) {},
-                        backgroundColor: statusColor,
-                        foregroundColor: Colors.white,
-                        icon: Icons.block,
-                        label: actionText,
-                      ),
-                    ],
-                  ),
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
-                    margin: EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
-                          blurRadius: 12,
-                          offset: Offset(0, 8),
+                  return Slidable(
+                    key: ValueKey(vendor['id']),
+                    endActionPane: ActionPane(
+                      motion: const ScrollMotion(),
+                      children: [
+                        SlidableAction(
+                          onPressed: (_) {},
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          icon: Icons.edit,
+                          label: 'Edit',
+                        ),
+                        SlidableAction(
+                          onPressed: (_) {},
+                          backgroundColor: statusColor,
+                          foregroundColor: Colors.white,
+                          icon: Icons.block,
+                          label: actionText,
                         ),
                       ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                        child: Container(
-                          color: Colors.white.withOpacity(0.85),
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 22,
-                                    backgroundColor: statusColor.withOpacity(0.2),
-                                    child: Icon(icon, color: statusColor, size: 22),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      vendor['name'],
-                                      style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.2),
+                            blurRadius: 12,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                          child: Container(
+                            color: Colors.white.withOpacity(0.85),
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 22,
+                                      backgroundColor: statusColor.withOpacity(0.2),
+                                      child: Icon(icon, color: statusColor, size: 22),
                                     ),
-                                  ),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: statusColor,
-                                      borderRadius: BorderRadius.circular(20),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        vendor['name'],
+                                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+                                      ),
                                     ),
-                                    child: Text(
-                                      vendor['status'],
-                                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: statusColor,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        vendor['status'],
+                                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8),
-                              Text(vendor['id'], style: TextStyle(color: Colors.grey[700])),
-                              Text('${vendor['category']} • ${vendor['location']}'),
-                              Text('Products: ${vendor['products']}'),
-                            ],
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(vendor['id'], style: TextStyle(color: Colors.grey[700])),
+                                Text('${vendor['category']} • ${vendor['location']}'),
+                                Text('Products: ${vendor['products']}'),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         ],
+      ),
+
+      // ✅ Floating Action Button
+      floatingActionButton: FloatingActionButton(
+        onPressed: _onAddVendorTap,
+        backgroundColor: Colors.blueAccent,
+        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: 'Add Vendor',
       ),
     );
   }

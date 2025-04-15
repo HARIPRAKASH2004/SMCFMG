@@ -3,13 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:loading_overlay/loading_overlay.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:track/providers/vendor_provider.dart';
 import 'providers/user_provider.dart';
 import 'services/splashpage.dart';
 import 'modules/common/NoInternetPage.dart'; // <-- Import your NoInternetPage file
 
-
 final GlobalKey<NavigatorState> navigationKey = GlobalKey<NavigatorState>();
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,12 +53,13 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => UserProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => VendorProvider()),
+      ],
       child: MaterialApp(
         title: 'Track',
         debugShowCheckedModeBanner: false,

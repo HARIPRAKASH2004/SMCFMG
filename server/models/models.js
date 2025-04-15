@@ -299,6 +299,138 @@ const Vehicle = sequelize.define('Vehicle', {
   },
 });
 
+const Vendor = sequelize.define('Vendor', {
+  vendorId: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  contactPerson: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      isEmail: true,
+    },
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  address: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  city: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  state: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  pincode: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  gstNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  companyName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  status: {
+    type: DataTypes.ENUM('Active', 'Inactive', 'Pending', 'Blocked'),
+    defaultValue: 'Pending',
+  },
+  
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  // Additional fields can be added here as needed, for example, the adminId for tracking.
+});
+
+
+
+const Product = sequelize.define('Product', {
+  productId: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  vendorId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Vendor',
+      key: 'vendorId',
+    },
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  productType: {
+    type: DataTypes.ENUM('grocery', 'restaurant', 'electronics', 'home_goods'),
+    allowNull: false,
+    defaultValue: 'grocery',
+  },
+  category: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  unitPrice: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+  quantityAvailable: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  unit: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'pcs',
+  },
+  status: {
+    type: DataTypes.ENUM('active', 'inactive', 'out-of-stock'),
+    defaultValue: 'active',
+  },
+  imageUrl: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+});
+
+
+
 
 // ✅ UserLog Model
 const UserLog = sequelize.define('UserLog', {
@@ -345,6 +477,10 @@ Vehicle.belongsTo(User, { foreignKey: 'userId', as: 'driver' });
 User.hasMany(UserLog, { foreignKey: 'user_id', onDelete: 'CASCADE' });
 UserLog.belongsTo(User, { foreignKey: 'user_id' });
 
+
+Vendor.hasMany(Product, { foreignKey: 'vendorId' });
+Product.belongsTo(Vendor, { foreignKey: 'vendorId' });
+
 // ❌ Removed invalid fcmToken foreign key associations
 
 // ✅ Log Success
@@ -362,4 +498,6 @@ module.exports = {
   Order,
   Vehicle,
   UserLog,
+  Vendor,
+  Product
 };

@@ -59,6 +59,18 @@ class RESTURIConstants {
     url: "/user/change-password", // Updated endpoint path
     method: put,
   );
+  static RestAPI getAllUsers() => RestAPI(
+    url: "/admin/get-allusers", // Updated endpoint path
+    method: get,
+  );
+  static RestAPI getAllVendors() => RestAPI(
+    url: "/admin/get-allvendors", // Updated endpoint path
+    method: get,
+  );
+  static RestAPI submitVendorDetails() => RestAPI(
+    url: "/admin/vendordetail", // Updated endpoint path
+    method: post,
+  );
 
 
 

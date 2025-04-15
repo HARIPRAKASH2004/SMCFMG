@@ -7,12 +7,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:track/services/splashpage.dart';
 
 import '../main.dart';
+import '../models/Vendor.dart';
 import '../models/location_log_model.dart';
 import '../models/orders.dart';
 import '../models/users.dart';
 import '../models/vechile.dart';
 import '../modules/common/loginpage.dart';
 import '../providers/user_provider.dart';
+import '../providers/vendor_provider.dart';
 import '../utils/snackbar_util.dart';
 import '../utils/api_handler.dart';
 import '../services/constants.dart';
@@ -544,6 +546,204 @@ class AuthService {
     }
   }
 
+  Future<List<UserModel>> fetchDrivers(BuildContext context) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      debugPrint("Token: $token");
+
+      if (token == null || token.isEmpty) {
+        await prefs.remove('x-auth-token');
+        showSnackBar(context, "Session expired. Please log in again.");
+        return [];
+      }
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      debugPrint("Request Headers: $headers");
+
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.getAllUsers(),
+        headers: headers,
+      );
+
+      debugPrint("Response Status Code: ${res.statusCode}");
+      debugPrint("Response Body: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(res.body);
+        final List<UserModel> drivers = [];
+
+        final usersData = data['users'] ?? [];
+        for (var userData in usersData) {
+          final user = userData['user'] ?? {};
+          final userType = user['type'] ?? 'unknown';
+
+          if (userType == 'driver') {
+            final vehiclesData = userData['vehicles'] ?? [];
+            List<VehicleModel> vehicles = [];
+            if (vehiclesData.isNotEmpty) {
+              vehicles = List<VehicleModel>.from(
+                vehiclesData.map((vehicleData) => VehicleModel.fromMap(vehicleData)),
+              );
+            }
+
+            // Extract city (from user or userData depending on structure)
+            final String? city = user['city'] ?? userData['city'] ?? null;
+
+            // Update UserModel with city if it's part of your model
+            final updatedUser = UserModel.fromMap(user).copyWith(
+              vehicles: vehicles,
+              city: city,
+            );
+
+            drivers.add(updatedUser);
+          }
+        }
+
+        if (drivers.isNotEmpty) {
+          final userProvider = Provider.of<UserProvider>(context, listen: false);
+          userProvider.setDrivers(drivers);
+        }
+
+        return drivers;
+      } else {
+        showSnackBar(context, "Failed to fetch drivers. Error: ${res.statusCode}");
+        return [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching drivers: $e");
+      showSnackBar(context, "Error fetching drivers.");
+      return [];
+    }
+  }
+
+  Future<List<VendorModel>> fetchVendorsWithProducts(BuildContext context) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      debugPrint("Token: $token");
+
+      if (token == null || token.isEmpty) {
+        await prefs.remove('x-auth-token');
+        showSnackBar(context, "Session expired. Please log in again.");
+        return [];
+      }
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      debugPrint("Request Headers: $headers");
+
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.getAllVendors(), // e.g., '/api/vendors'
+        headers: headers,
+      );
+
+      debugPrint("Response Status Code: ${res.statusCode}");
+      debugPrint("Response Body: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(res.body);
+        final List<VendorModel> vendors = [];
+
+        final vendorsData = data['vendors'] ?? [];
+        for (var vendorData in vendorsData) {
+          final vendor = vendorData['vendor'] ?? {};
+          final productsData = vendorData['products'] ?? [];
+
+          // Extract products from the response data
+          List<ProductModel> products = [];
+          if (productsData.isNotEmpty) {
+            products = List<ProductModel>.from(
+              productsData.map((product) => ProductModel.fromMap(product)),
+            );
+          }
+
+          // Create VendorModel instance and set the products
+          final updatedVendor = VendorModel.fromMap(vendor).copyWith(
+            products: products,  // Ensure products are assigned here
+          );
+
+          vendors.add(updatedVendor);
+        }
+
+        // If vendors are fetched successfully, update VendorProvider
+        if (vendors.isNotEmpty) {
+          final vendorProvider = Provider.of<VendorProvider>(context, listen: false);
+          vendorProvider.setVendors(vendors.cast<UserModel>());  // Set the vendors in VendorProvider
+        }
+
+        return vendors;
+      } else {
+        showSnackBar(context, "Failed to fetch vendors. Error: ${res.statusCode}");
+        return [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching vendors: $e");
+      showSnackBar(context, "Error fetching vendors.");
+      return [];
+    }
+  }
+
+  Future<bool?> submitVendorDetails(BuildContext context, VendorModel vendor) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('x-auth-token');
+
+      if (token == null || token.isEmpty) {
+        showSnackBar(context, "Session expired. Please log in again.");
+        return false;
+      }
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+
+      // Convert the VendorModel to JSON
+      final body = vendor.toMap(); // Ensure your VendorModel has a toMap() method
+
+      // Send the request (POST for new vendor, or PUT for update)
+      final http.Response res = await APIHandler.response(
+        api: RESTURIConstants.submitVendorDetails(), // Example: '/api/vendors' or '/api/vendors/:id'
+        headers: headers,
+        body: body, // APIHandler should handle JSON encoding
+         // or 'PUT' if updating an existing vendor
+      );
+
+      debugPrint("Vendor Submit Response Code: ${res.statusCode}");
+      debugPrint("Vendor Submit Response Body: ${res.body}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        showSnackBar(context, "Vendor submitted successfully.");
+      }
+
+      await HTTPResponseHandler.handleResponse(
+        context: context,
+        response: res,
+        on200: () {}, // Optional
+        on201: () {}, // Optional
+        on400: () => showSnackBar(context, "Invalid vendor data."),
+        on401: () => showSnackBar(context, "Unauthorized."),
+        on500: () => showSnackBar(context, "Server error."),
+        onOther: () => showSnackBar(context, "Something went wrong."),
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint("SubmitVendorDetails Error: $e");
+      showSnackBar(context, "Failed to submit vendor.");
+      return false;
+    }
+  }
 
 
 

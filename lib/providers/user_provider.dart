@@ -7,10 +7,15 @@ import '../models/location_log_model.dart';
 
 class UserProvider with ChangeNotifier {
   UserModel? _user;
+  List<UserModel> _drivers = [];  // Add this private field to store drivers
+  List<UserModel> get drivers => _drivers;  // Public getter to access drivers
+
   UserModel? get user => _user;
 
   bool get isLoggedIn => _user != null;
+
   bool get isAdmin => _user?.type == 'admin';
+
   bool get isDriver => _user?.type == 'driver';
 
   // Set the user data and notify listeners
@@ -74,6 +79,7 @@ class UserProvider with ChangeNotifier {
 
   // Vehicle handling
   VehicleModel? _vehicle;
+
   VehicleModel? get vehicle => _vehicle;
 
   // Set a single vehicle
@@ -93,6 +99,7 @@ class UserProvider with ChangeNotifier {
   List<OrderModel> _pastOrders = [];
 
   OrderModel? get currentOrder => _currentOrder;
+
   List<OrderModel> get pastOrders => _pastOrders;
 
   // Set a current order
@@ -124,6 +131,7 @@ class UserProvider with ChangeNotifier {
 
   // Notifications handling
   List<FcmLogModel> _notifications = [];
+
   List<FcmLogModel> get notifications => _notifications;
 
   // Set notifications
@@ -134,7 +142,7 @@ class UserProvider with ChangeNotifier {
 
   // Add a single notification
   void addNotification(FcmLogModel log) {
-    _notifications.insert(0, log);  // Newest notifications at the top
+    _notifications.insert(0, log); // Newest notifications at the top
     notifyListeners();
   }
 
@@ -146,6 +154,7 @@ class UserProvider with ChangeNotifier {
 
   // Location handling
   LocationModel? _currentLocation;
+
   LocationModel? get currentLocation => _currentLocation;
 
   // Set user location and update user data accordingly
@@ -174,6 +183,7 @@ class UserProvider with ChangeNotifier {
 
   // Handle vehicles in the user model
   List<VehicleModel>? _vehicles;
+
   List<VehicleModel>? get vehicles => _vehicles;
 
   // Set vehicles for the user
@@ -220,4 +230,10 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+  void setDrivers(List<UserModel> drivers) {
+    _drivers = drivers; // Assuming _drivers is a private field in UserProvider
+    notifyListeners();
+  }
+
+
 }

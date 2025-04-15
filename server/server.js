@@ -7,7 +7,7 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken'); // 🔐 Add this
 const bcrypt = require('bcrypt'); // For password hashing
 const sequelize = require('./config/dbconfig'); // Database connection
-const { User, Order, Location, Vehicle, UserLog } = require('./models/models');
+const { User, Order, Location, Vehicle, UserLog,Vendor,Product } = require('./models/models');
 const { hashPassword } = require('./middleware/auth'); // ✅ Update path if needed
 const argon2 = require('argon2');
 
@@ -124,8 +124,6 @@ app.post(`/api/user/login`, async (req, res) => {
   }
 });
 
-
-
 // ✅ (Unchanged) Get User Data
 app.get('/api/user/data', passport.authenticate('jwt', { session: false }), async (req, res) => {
   const userId = req.user.id;
@@ -186,7 +184,6 @@ app.get('/api/user/data', passport.authenticate('jwt', { session: false }), asyn
   }
 });
 
-
 app.delete('/api/user/logout', passport.authenticate('jwt', { session: false }), async (req, res) => {
   const userId = req.user.id;
   console.log("🔐 Logging out user with ID:", userId);
@@ -203,9 +200,6 @@ app.delete('/api/user/logout', passport.authenticate('jwt', { session: false }),
     return res.status(500).json({ message: 'Internal server error during logout' });
   }
 });
-
-
-
 
 
 app.put('/api/user/online-status', passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -244,7 +238,6 @@ app.put('/api/user/online-status', passport.authenticate('jwt', { session: false
   }
 });
 
-
 app.put('/api/user/update-aadhaar', passport.authenticate('jwt', { session: false }), async (req, res) => {
   const userId = req.user.id;
   const { aadhaarNumber } = req.body;
@@ -280,7 +273,6 @@ app.put('/api/user/update-aadhaar', passport.authenticate('jwt', { session: fals
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
-
 
 
 app.post( '/api/vehicles/register',passport.authenticate('jwt', { session: false }), async (req, res) => {
@@ -319,7 +311,6 @@ app.post( '/api/vehicles/register',passport.authenticate('jwt', { session: false
     }
   }
 );
-
 
 app.put('/api/user/change-password', async (req, res) => {
   const { password } = req.body;
@@ -446,6 +437,235 @@ app.post(`/api/user/google-login`, async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
+
+app.get('/api/admin/get-allusers', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const userId = req.user.id; // Get the user ID from the JWT payload
+  console.log("🔐 Fetching all drivers for the admin:", userId);
+
+  try {
+    // Fetch all users with 'driver' type
+    const drivers = await User.findAll({ where: { type: 'driver' } });
+
+    if (!drivers || drivers.length === 0) {
+      console.log("❌ No drivers found.");
+      return res.status(404).json({ message: 'No drivers found' });
+    }
+
+    const users = [];
+
+    for (const driver of drivers) {
+      const vehicle = await Vehicle.findOne({ where: { userId: driver.id } });
+
+      const user = {
+        id: driver.id || 'No ID',
+        name: driver.name || 'No name',
+        email: driver.email || 'No email',
+        phone: driver.phone || 'No phone',
+        state: driver.state || 'No state',
+        district: driver.district || 'No district',
+        type: driver.type || 'driver',
+        status: driver.status || 'active',
+        isOnline: driver.isOnline,
+        createdAt: driver.createdAt || new Date(),
+        aadhaarNumber: driver.aadhaarNumber || 'No Aadhaar Number',
+        updatedAt: driver.updatedAt || new Date(),
+      };
+
+      const vehicles = [];
+
+      if (vehicle) {
+        vehicles.push({
+          id: vehicle.id,
+          vehicleNumber: vehicle.vehicleNumber,
+          vehicleType: vehicle.vehicleType,
+          model: vehicle.model,
+          brand: vehicle.brand,
+          year: vehicle.year,
+          status: vehicle.status,
+          createdAt: vehicle.createdAt || new Date(),
+          updatedAt: vehicle.updatedAt || new Date(),
+        });
+      }
+
+      users.push({ user, vehicles });
+    }
+
+    console.log("🎉 Drivers fetched successfully:", users);
+    return res.status(200).json({ users });
+
+  } catch (err) {
+    console.error("❌ Error fetching drivers:", err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/get-allvendors', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const userId = req.user.id;
+  console.log("🔐 Fetching all vendors for the admin:", userId);
+
+  try {
+    // Fetch all vendors with their associated products using eager loading
+    const vendors = await Vendor.findAll({
+      include: [{
+        model: Product,
+        attributes: ['productId', 'name', 'description', 'unitPrice', 'status', 'createdAt', 'updatedAt'],  // Use productId instead of id
+      }]
+    });
+
+    if (!vendors || vendors.length === 0) {
+      console.log("❌ No vendors found.");
+      return res.status(404).json({ message: 'No vendors found' });
+    }
+
+    const vendorList = vendors.map(vendor => {
+      const vendorData = {
+        id: vendor.vendorId,
+        name: vendor.name,
+        contactPerson: vendor.contactPerson || 'No contact person',
+        email: vendor.email || 'No email',
+        phone: vendor.phone,
+        address: vendor.address || 'No address',
+        city: vendor.city || 'No city',
+        state: vendor.state || 'No state',
+        pincode: vendor.pincode || 'No pincode',
+        gstNumber: vendor.gstNumber || 'No GST number',
+        companyName: vendor.companyName,
+        status: vendor.status,
+        createdAt: vendor.createdAt || new Date(),
+        updatedAt: vendor.updatedAt || new Date(),
+      };
+
+      // Extract product details
+      const vendorProducts = vendor.Products.map(product => {
+        return {
+          id: product.productId,  // Use productId instead of id
+          name: product.name,
+          description: product.description || 'No description',
+          price: product.unitPrice,
+          status: product.status,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        };
+      });
+
+      return { vendor: vendorData, products: vendorProducts };
+    });
+
+    console.log("🎉 Vendors fetched successfully:", vendorList);
+    return res.status(200).json({ vendors: vendorList });
+
+  } catch (err) {
+    console.error("❌ Error fetching vendors:", err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+app.post('/api/admin/vendordetail', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const vendor = req.body;
+    const products = vendor.products || [];
+
+    console.log("📥 Raw request body:", req.body);
+    console.log("📥 Incoming vendor data:", vendor);
+    console.log("📦 Products:", products);
+
+    // Validate required fields
+    const requiredFields = [
+      'name', 'phone', 'address', 'companyName', 'city',
+      'pincode', 'gstNumber', 'contactPerson', 'status',
+      'category', 'productCount', 'state'
+    ];
+
+    for (const field of requiredFields) {
+      if (!vendor[field]) {
+        return res.status(400).json({ message: `Required field '${field}' is missing.` });
+      }
+    }
+
+    let savedVendor;
+
+    if (vendor.vendorId) {
+      savedVendor = await Vendor.findByPk(vendor.vendorId);
+      if (savedVendor) {
+        await savedVendor.update({
+          ...vendor,
+          updatedAt: new Date(),
+          adminId,
+        });
+      } else {
+        return res.status(404).json({ message: "Vendor not found." });
+      }
+    } else {
+      savedVendor = await Vendor.create({
+        ...vendor,
+        adminId,
+        createdAt: new Date(),
+      });
+    }
+
+    const savedProducts = [];
+
+    if (Array.isArray(products)) {
+      for (const rawProduct of products) {
+        try {
+          const product = {
+            name: rawProduct.name || "Unnamed Product",
+            productType: rawProduct.productType || "grocery",
+            category: rawProduct.category || "General",
+            description: rawProduct.description || "No description provided.",
+            unitPrice: rawProduct.unitPrice != null ? rawProduct.unitPrice : 0,
+            quantityAvailable: rawProduct.quantityAvailable != null ? rawProduct.quantityAvailable : 0,
+            unit: rawProduct.unit || "pcs",
+            status: rawProduct.status || "active",
+            imageUrl: rawProduct.imageUrl || null,
+          };
+
+          let savedProduct;
+
+          if (rawProduct.productId) {
+            savedProduct = await Product.findByPk(rawProduct.productId);
+            if (savedProduct) {
+              await savedProduct.update({
+                ...product,
+                vendorId: savedVendor.vendorId,
+                updatedAt: new Date(),
+              });
+            } else {
+              console.warn(`⚠️ Product ID ${rawProduct.productId} not found. Skipping.`);
+              continue;
+            }
+          } else {
+            savedProduct = await Product.create({
+              ...product,
+              vendorId: savedVendor.vendorId,
+              createdAt: new Date(),
+            });
+          }
+
+          savedProducts.push(savedProduct);
+        } catch (productError) {
+          console.error("❌ Error saving product:", rawProduct, productError);
+        }
+      }
+    }
+
+    return res.status(200).json({
+      message: vendor.vendorId ? "Vendor updated successfully." : "Vendor created successfully.",
+      vendor: savedVendor,
+      products: savedProducts,
+    });
+
+  } catch (err) {
+    console.error("❌ Error in vendor submission:", err);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+
+
 
 
 
