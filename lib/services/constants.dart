@@ -11,7 +11,8 @@ class RestAPI {
 }
 
 class Constants {
-   static const String uri = "http://192.168.53.132:5000";
+   // static const String uri = "http://192.168.53.132:5000";
+  static const String uri = "http://192.168.163.132:5000";
   // static const String uri = "https://track-bcakend-production.up.railway.app";
   static const vapidKey =
       "BGm0V2dKGdvYkJdMUi3Uzmjc0FVFkGzpYN19llpiU_KuYQUjZfdkr1Iov6qPliZT7cSS1tTjd0McNSYraiVGgj8";

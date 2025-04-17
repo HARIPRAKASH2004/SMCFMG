@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_services.dart';
 import '../../utils/snackbar_util.dart';
+import '../admin/order_detail_page.dart';
 import '/models/orders.dart';
+import 'order_detail_page.dart';
 
 class OrderPage extends StatefulWidget {
   @override
@@ -39,98 +41,76 @@ class _OrderPageState extends State<OrderPage> {
   @override
   Widget build(BuildContext context) {
     final filteredOrders = orders
-        .where((order) => order.driverName.toLowerCase().contains(search.toLowerCase()))
+        .where((order) =>
+        order.vendor.name.toLowerCase().contains(search.toLowerCase()))
         .toList();
 
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         centerTitle: true,
         title: Text(
           "Order History",
           style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.grey.shade100,
         elevation: 0,
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Padding(
-            padding: EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildBalanceRow(),
-                SizedBox(height: 15),
-                _buildSearchBox(),
-                SizedBox(height: 10),
-                _buildTableHeadings(),
-                SizedBox(height: 10),
-                Expanded(
-                  child: isLoading
-                      ? Center(child: CircularProgressIndicator())
-                      : filteredOrders.isEmpty
-                      ? _buildEmptyState()
-                      : _buildOrderList(filteredOrders),
-                ),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            SizedBox(height: 20),
+            _buildSearchBox(),
+            SizedBox(height: 20),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Recent Orders",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
             ),
-          );
-        },
+            SizedBox(height: 10),
+            Expanded(
+              child: isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : RefreshIndicator.adaptive(
+                onRefresh: _fetchOrders,
+                edgeOffset: 10,
+                displacement: 20,
+                child: filteredOrders.isEmpty
+                    ? _buildEmptyState()
+                    : _buildOrderList(filteredOrders),
+              ),
+            ),
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildBalanceRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text.rich(TextSpan(children: [
-          TextSpan(text: "Balance\n"),
-          TextSpan(
-              text: "00.00",
-              style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18)),
-        ])),
-        Text.rich(TextSpan(children: [
-          TextSpan(text: "Total Earned\n"),
-          TextSpan(
-              text: "00.00",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        ])),
-      ],
     );
   }
 
   Widget _buildSearchBox() {
     return Container(
       decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(10)),
-      child: TextField(
-        onChanged: (value) {
-          setState(() => search = value);
-        },
-        decoration: InputDecoration(
-            hintText: "Search here",
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+        ],
       ),
-    );
-  }
-
-  Widget _buildTableHeadings() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text("All Orders", style: TextStyle(fontWeight: FontWeight.bold)),
-        Text("Date", style: TextStyle(fontWeight: FontWeight.bold)),
-      ],
+      child: TextField(
+        onChanged: (value) => setState(() => search = value),
+        decoration: InputDecoration(
+          hintText: "Search by vendor name",
+          prefixIcon: Icon(Icons.search, color: Colors.deepPurple),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        ),
+      ),
     );
   }
 
@@ -139,44 +119,106 @@ class _OrderPageState extends State<OrderPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset('assets/images/corrugated-box.png', height: 190),
-          SizedBox(height: 10),
+          Image.asset('assets/images/corrugated-box.png', height: 140),
+          SizedBox(height: 20),
           Text("No Orders Yet!",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          SizedBox(height: 5),
-          Text("Start your work with us and place your first order"),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+          SizedBox(height: 8),
+          Text(
+            "Start working with us to get your first order!",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey[600]),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildOrderList(List<OrderModel> orders) {
-    return ListView.builder(
+    return ListView.separated(
+      physics: AlwaysScrollableScrollPhysics(),
       itemCount: orders.length,
+      separatorBuilder: (_, __) => SizedBox(height: 12),
       itemBuilder: (context, index) {
         final order = orders[index];
-        final date = order.createdAt; // Assumes createdAt is a DateTime
+        final vendor = order.vendor;
+        final date = order.createdAt;
 
-        return Card(
-          margin: EdgeInsets.symmetric(vertical: 6),
-          child: ListTile(
-            contentPadding: EdgeInsets.all(12),
-            title: Text(order.driverName, style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 4),
-                Text("Order ID: ${order.orderId}"),
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OrderDetailPage(
+                  orderId: order.orderId,
+                  latitude: order.location.latitude,
+                  longitude: order.location.longitude,
+                  phoneNumber: vendor.phone, // <-- passed here
+                ),
+              ),
+            );
+          },
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.deepPurple.shade50, Colors.white],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
               ],
             ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Row(
               children: [
-                Text(
-                  "${date.day} ${_month(date.month)}",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                CircleAvatar(
+                  backgroundColor: Colors.deepPurple.shade100,
+                  radius: 24,
+                  child: Icon(Icons.storefront, color: Colors.deepPurple),
                 ),
-                Text("${date.year}", style: TextStyle(fontSize: 12)),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        vendor.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        vendor.address,
+                        style: TextStyle(color: Colors.grey[700]),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      "${date.day} ${_month(date.month)}",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Text(
+                      "${date.year}",
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -186,7 +228,21 @@ class _OrderPageState extends State<OrderPage> {
   }
 
   String _month(int m) {
-    const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return months[m];
   }
 }

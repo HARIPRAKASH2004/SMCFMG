@@ -1,10 +1,79 @@
+class Vendor {
+  final String vendorId;
+  final String name;
+  final String phone;
+  final String email;
+  final String companyName;
+  final String address;
+  final String gstNumber;
+
+  Vendor({
+    required this.vendorId,
+    required this.name,
+    required this.phone,
+    required this.email,
+    required this.companyName,
+    required this.address,
+    required this.gstNumber,
+  });
+
+  factory Vendor.fromMap(Map<String, dynamic> map) {
+    return Vendor(
+      vendorId: (map['vendorId'] ?? '').toString(),
+      name: (map['name'] ?? '').toString(),
+      phone: (map['phone'] ?? '').toString(),
+      email: (map['email'] ?? '').toString(),
+      companyName: (map['companyName'] ?? '').toString(),
+      address: (map['address'] ?? '').toString(),
+      gstNumber: (map['gstNumber'] ?? '').toString(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'vendorId': vendorId,
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'companyName': companyName,
+      'address': address,
+      'gstNumber': gstNumber,
+    };
+  }
+}
+
+
+class Location {
+  final double latitude;
+  final double longitude;
+
+  Location({
+    required this.latitude,
+    required this.longitude,
+  });
+
+  factory Location.fromMap(Map<String, dynamic> map) {
+    return Location(
+      latitude: (map['latitude'] ?? 0).toDouble(),
+      longitude: (map['longitude'] ?? 0).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'latitude': latitude,
+      'longitude': longitude,
+    };
+  }
+}
+
 class OrderModel {
   final String orderId;
   final String driverId;
   final String driverName;
   final String pickupLocation;
   final String deliveryLocation;
-  final String status; // e.g., 'pending', 'assigned', 'delivered', 'cancelled'
+  final String status;
   final DateTime pickupTime;
   final DateTime deliveryTime;
   final double distanceInKm;
@@ -15,6 +84,8 @@ class OrderModel {
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final Vendor vendor;
+  final Location location;
 
   OrderModel({
     required this.orderId,
@@ -33,6 +104,8 @@ class OrderModel {
     this.notes,
     required this.createdAt,
     required this.updatedAt,
+    required this.vendor,
+    required this.location,
   });
 
   factory OrderModel.fromMap(Map<String, dynamic> map) {
@@ -53,6 +126,8 @@ class OrderModel {
       notes: map['notes']?.toString(),
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
+      vendor: Vendor.fromMap(map['vendor'] ?? {}),
+      location: Location.fromMap(map['location'] ?? {}),
     );
   }
 
@@ -74,6 +149,8 @@ class OrderModel {
       'notes': notes,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'vendor': vendor.toMap(),
+      'location': location.toMap(),
     };
   }
 
@@ -94,6 +171,8 @@ class OrderModel {
     String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Vendor? vendor,
+    Location? location,
   }) {
     return OrderModel(
       orderId: orderId ?? this.orderId,
@@ -112,6 +191,8 @@ class OrderModel {
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      vendor: vendor ?? this.vendor,
+      location: location ?? this.location,
     );
   }
 }

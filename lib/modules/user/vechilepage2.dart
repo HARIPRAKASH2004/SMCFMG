@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/vechile.dart';
-// Fixed import
 import '../../providers/user_provider.dart';
 import '../../services/auth_services.dart';
 
@@ -25,6 +24,21 @@ class _VehicleDetailsFormPageState extends State<VehicleDetailsFormPage> {
   DateTime? manufactureDate;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentUser = Provider.of<UserProvider>(context, listen: false).user;
+      if (currentUser != null) {
+        final vehicle = currentUser.vehicles?.firstWhere(
+              (v) => v.vehicleType == widget.selectedVehicle,
+          // orElse: () => null,
+        );
+        _populateFields(vehicle);
+      }
+    });
+  }
+
+  @override
   void dispose() {
     modelController.dispose();
     numberController.dispose();
@@ -34,18 +48,16 @@ class _VehicleDetailsFormPageState extends State<VehicleDetailsFormPage> {
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2022, 1, 1),
-      firstDate: DateTime(1990),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        manufactureDate = picked;
-        dateController.text = DateFormat('dd-MM-yyyy').format(picked);
-      });
+  void _populateFields(VehicleModel? vehicle) {
+    if (vehicle != null) {
+      modelController.text = vehicle.model ?? "";
+      numberController.text = vehicle.vehicleNumber ?? "";
+      fuelController.text = vehicle.fuelType ?? "";
+      brandController.text = vehicle.brand ?? "";
+      if (vehicle.manufactureDate != null) {
+        manufactureDate = vehicle.manufactureDate!;
+        dateController.text = DateFormat('dd-MM-yyyy').format(manufactureDate!);
+      }
     }
   }
 
@@ -95,19 +107,6 @@ class _VehicleDetailsFormPageState extends State<VehicleDetailsFormPage> {
     }
   }
 
-  void _populateFields(VehicleModel? vehicle) {
-    if (vehicle != null) {
-      modelController.text = vehicle.model ?? "";
-      numberController.text = vehicle.vehicleNumber ?? "";
-      fuelController.text = vehicle.fuelType ?? "";
-      brandController.text = vehicle.brand ?? "";
-      dateController.text = vehicle.manufactureDate != null
-          ? DateFormat('dd-MM-yyyy').format(vehicle.manufactureDate!)
-          : "";
-      manufactureDate = vehicle.manufactureDate;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final currentUser = Provider.of<UserProvider>(context).user;
@@ -116,30 +115,6 @@ class _VehicleDetailsFormPageState extends State<VehicleDetailsFormPage> {
       return const Scaffold(
         body: Center(child: Text('No user is logged in.')),
       );
-    }
-
-    final vehicle = currentUser.vehicles?.firstWhere(
-          (v) => v.vehicleType == widget.selectedVehicle,
-      orElse: () => VehicleModel( // Default instance
-        id: '',
-        userId: '',
-        vehicleNumber: '',
-        vehicleType: '',
-        model: '',
-        brand: '',
-        fuelType: '',
-        year: null,
-        rcBookUrl: null,
-        insuranceUrl: null,
-        insuranceExpiry: null,
-        status: '',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-    );
-
-    if (vehicle != null) {
-      _populateFields(vehicle);
     }
 
     const maroon = Color(0xFF800020);
@@ -184,7 +159,7 @@ class _VehicleDetailsFormPageState extends State<VehicleDetailsFormPage> {
             _label('Date of Manufacture'),
             TextField(
               controller: dateController,
-              readOnly: true, // Prevent manual input
+              readOnly: true,
               onTap: () async {
                 final DateTime? picked = await showDatePicker(
                   context: context,
@@ -211,7 +186,6 @@ class _VehicleDetailsFormPageState extends State<VehicleDetailsFormPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -219,30 +193,29 @@ class _VehicleDetailsFormPageState extends State<VehicleDetailsFormPage> {
                 ElevatedButton(
                   onPressed: () => _handleSave(currentUser.id),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: maroon, // Button color
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12), // Add padding
+                    backgroundColor: maroon,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10), // Rounded corners
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    elevation: 5, // Add elevation for shadow effect
-                    shadowColor: Colors.black.withOpacity(0.2), // Shadow color
+                    elevation: 5,
+                    shadowColor: Colors.black.withOpacity(0.2),
                     textStyle: const TextStyle(
-                      fontSize: 16, // Font size
-                      fontWeight: FontWeight.bold, // Bold text
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                    minimumSize: const Size(150, 50), // Minimum size for the button
+                    minimumSize: const Size(150, 50),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.save, size: 20,color: Colors.white,), // Optional icon for added visual appeal
-                      SizedBox(width: 8), // Space between the icon and text
-                      Text('Save', style: TextStyle(fontSize: 16,color: Colors.white)),
+                      Icon(Icons.save, size: 20, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text('Save', style: TextStyle(fontSize: 16, color: Colors.white)),
                     ],
                   ),
                 ),
               ],
-
             ),
             const SizedBox(height: 40),
           ],

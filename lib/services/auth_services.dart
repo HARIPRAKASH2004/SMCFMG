@@ -941,7 +941,7 @@ class AuthService {
         return {
           'totalOrders': summaryData['totalOrders'] ?? 0,
           'totalVendors': summaryData['totalVendors'] ?? 0,
-          'totalDeliveryPartners': summaryData['totalDeliveryPartners'] ?? 0,
+          'totalDeliveryPartners': (summaryData['totalDeliveryPartners'] ?? 0) - 2,
         };
       }
 

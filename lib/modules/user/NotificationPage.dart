@@ -1,133 +1,205 @@
 import 'package:flutter/material.dart';
-import '/models/notification_model.dart';
+import 'package:intl/intl.dart';
+import '../../services/auth_services.dart';
+import '../../utils/snackbar_util.dart';
+import '/models/orders.dart';
+import 'NotificationDetailPage.dart';
 
-class NotificationPage extends StatelessWidget {
-  const NotificationPage({super.key});
+class NotificationPage extends StatefulWidget {
+  @override
+  State<NotificationPage> createState() => _NotificationPageState();
+}
+
+class _NotificationPageState extends State<NotificationPage> {
+  List<OrderModel> orders = [];
+  String search = "";
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders();
+  }
+
+  Future<void> _fetchOrders() async {
+    try {
+      final authservices = AuthService();
+      final fetchedOrders = await authservices.fetchOrders(context);
+      setState(() {
+        orders = fetchedOrders;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      showSnackBar(context, "Failed to load orders.");
+      print("Error fetching orders: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<FcmLogModel> notifications = [
-      FcmLogModel(
-        title: "New Order !",
-        body: "You have canceled an order at",
-        time: "06 Jul,2025 |20:40 pm",
-      ),
-      FcmLogModel(
-        title: "Delivery Successful !",
-        body: "You have canceled an order at",
-        time: "06 Jul,2025 |20:40 pm",
-      ),
-      FcmLogModel(
-        title: "Delivery Successful !",
-        body: "You have canceled an order at",
-        time: "06 Jul,2025 |20:40 pm",
-      ),
-    ];
+    final filteredOrders = orders
+        .where((order) =>
+        order.vendor.name.toLowerCase().contains(search.toLowerCase()))
+        .toList();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text("Notification", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false,
+        title: Text(
+          "Notifications",
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+        ),
+        backgroundColor: Colors.grey.shade100,
+        elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ListView(
+        child: Column(
           children: [
-            const SizedBox(height: 12),
-            const Text("Recent", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text(
-              "check ...",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-                color: Colors.black45,
+            SizedBox(height: 20),
+            _buildSearchBox(),
+            SizedBox(height: 20),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Recent Notifications",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
-            const SizedBox(height: 16),
-            ...notifications.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return _notificationItem(item, isNew: index == 0);
-            }),
+            SizedBox(height: 10),
+            Expanded(
+              child: isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : RefreshIndicator.adaptive(
+                onRefresh: _fetchOrders,
+                edgeOffset: 10,
+                displacement: 20,
+                child: filteredOrders.isEmpty
+                    ? _buildEmptyState()
+                    : _buildOrderList(filteredOrders),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _notificationItem(FcmLogModel data, {bool isNew = false}) {
-    IconData icon = data.title.toLowerCase().contains("new") ? Icons.shopping_cart : Icons.check_circle;
+  Widget _buildSearchBox() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: TextField(
+        onChanged: (value) => setState(() => search = value),
+        decoration: InputDecoration(
+          hintText: "Search by vendor name",
+          prefixIcon: Icon(Icons.search, color: Colors.deepPurple),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: Colors.grey.shade300,
-            child: Icon(icon, color: Colors.black),
+          Image.asset('assets/images/corrugated-box.png', height: 140),
+          SizedBox(height: 20),
+          Text("No Notifications Yet!",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+          SizedBox(height: 8),
+          Text(
+            "Once orders are assigned, you'll see them here.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey[600]),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderList(List<OrderModel> orders) {
+    return ListView.separated(
+      physics: AlwaysScrollableScrollPhysics(),
+      itemCount: orders.length,
+      separatorBuilder: (_, __) => SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final order = orders[index];
+        final vendor = order.vendor;
+        final date = order.createdAt;
+        final formattedDate = DateFormat('MMM dd, yyyy • hh:mm a').format(date);
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => NotificationDetailPage(order: order),
+              ),
+            );
+          },
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        data.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Colors.black,
+                CircleAvatar(
+                  backgroundColor: Colors.deepPurple.shade100,
+                  radius: 24,
+                  child: Icon(Icons.notifications, color: Colors.deepPurple),
+                ),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Order assigned from ${vendor.name}",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Colors.black87,
                         ),
                       ),
-                    ),
-                    if (isNew)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Color(0xFF6A1B9A),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          "New",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      SizedBox(height: 6),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  data.time,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  data.body,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black87,
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
