@@ -15,9 +15,9 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
+  bool loading = false; // <-- Added loading variable
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email'],
@@ -54,7 +54,6 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -290,7 +289,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-
   Widget buildDivider() {
     return const Center(
       child: Text(
@@ -330,8 +328,6 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-
-
 
   void showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
